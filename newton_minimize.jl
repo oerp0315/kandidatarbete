@@ -1,9 +1,9 @@
 using ForwardDiff
 using LinearAlgebra
 
-function line_step_search(x, dx; alpha=0.1)
+function line_step_search(x, dir; alpha=1)
     for i in 1:10
-        x_new = x + alpha * dx
+        x_new = x + alpha * dir
         if f(x_new) < f(x)
             x = x_new
             break
@@ -14,16 +14,16 @@ function line_step_search(x, dx; alpha=0.1)
     return alpha
 end
 
-function newton_method(gx, Hx, x)
-    dx = -Hx \ gx
-    x += line_step_search(x, dx) * dx
+function newton_method(grad, hess, x)
+    dir = -hess \ grad
+    x += line_step_search(x, dir) * dir
 
     return x
 end
 
 function steepest_descent(grad, x)
-    dx = -grad / norm(grad)
-    x += line_step_search(x, dx) * dx
+    dir = -grad / norm(grad)
+    x += line_step_search(x, dir) * dir
 
     return x
 end
@@ -50,9 +50,3 @@ function opt_alg(f, x0; tol=1e-6, max_iter=100)
 
     return x
 end
-
-f(x) = sin(x[1]) + sin(x[2])
-
-println(opt_alg(f, [1, 2]))
-
-rand()
