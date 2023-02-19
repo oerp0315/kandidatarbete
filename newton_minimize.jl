@@ -1,5 +1,6 @@
 using ForwardDiff
 using LinearAlgebra
+using Distributions
 
 function line_step_search(x, dir; alpha=1)
     for i in 1:10
@@ -28,25 +29,66 @@ function steepest_descent(grad, x)
     return x
 end
 
-function opt_alg(f, x0; tol=1e-6, max_iter=100)
-    x = x0
-    for i in 1:max_iter
-        # Evaluate the function and its gradient and Hessian at the current point
-        grad = ForwardDiff.gradient(f, x)
-        hess = ForwardDiff.hessian(f, x)
+function latin_hypercube(n, bounds)
+    d = length(bounds)
+    samples = zeros(n, d)
+    for j in 1:d
+        p = rand(1:n, n)
+        for i in 1:n
+            samples[i, j] = (p[i] - rand()) / n * (bounds[j][2] - bounds[j][1]) + bounds[j][1]
+        end
+    end
+    return samples
+end
 
-        # Check for convergence
-        if norm(grad) < tol
-            break
+function opt_alg(f, bounds; tol=1e-6, max_iter=100)
+
+    # Generate Latin hypercube samples in the search space
+    x_samples = latin_hypercube(100, bounds)
+
+    x_min = x_samples[1, :]
+    f_min = f(x_min)
+
+    for x in eachrow(x_samples)
+        for i in 1:max_iter
+            # Evaluate the function and its gradient and Hessian at the current point
+            grad = ForwardDiff.gradient(f, x)
+            hess = ForwardDiff.hessian(f, x)
+
+            # Check for convergence
+            if norm(grad) < tol
+                break
+            end
+
+            # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
+            if isposdef(hess)
+                x = newton_method(grad, hess, x)
+            else
+                x = steepest_descent(grad, x)
+            end
         end
 
-        # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
-        if isposdef(hess)
-            x = newton_method(grad, hess, x)
-        else
-            x = steepest_descent(grad, x)
+        # Update the minimum point and value
+        f_val = f(x)
+        if f_val < f_min
+            x_min = x
+            f_min = f_val
         end
     end
 
-    return x
+    return x_min, f_min
 end
+
+# Define the function to optimize
+f(x) = 4 * x[1]^2 - 2.1 * x[1]^4 + (1 / 3) * x[1]^6 + x[1] * x[2] - 4 * x[2]^2 + 4 * x[2]^4
+
+# Generate Latin hypercube samples
+n = 10
+bounds = [(-1, 1), (-1, 1)]
+
+# Find the minimum point and value among the samples
+min_point, min_val = opt_alg(f, bounds)
+
+# Print the results
+println("Minimum point: ", min_point)
+println("Minimum value: ", min_val)
