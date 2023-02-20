@@ -39,8 +39,4 @@ function plot_latin_square(n::Int)
     zlabel!("z")
 end
 
-#plot_latin_square(4)
-gr(show=true)
-x = range(0, 10, length=100)
-y = sin.(x)
-display(plot(x, y))
+plot_latin_square(16)
