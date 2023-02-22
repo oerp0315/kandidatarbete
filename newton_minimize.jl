@@ -1,9 +1,11 @@
 using ForwardDiff
 using LinearAlgebra
 using Distributions
+using Random
+using OrdinaryDiffEq
 
 function line_step_search(x, dir; alpha=1)
-    for i in 1:10
+    for i in 1:50
         x_new = x + alpha * dir
         if f(x_new) < f(x)
             x = x_new
@@ -29,7 +31,10 @@ function steepest_descent(grad, x)
     return x
 end
 
-function latin_hypercube(n, bounds)
+function latin_hypercube(n, bounds, seed=123)
+
+    Random.seed!(seed)
+
     d = length(bounds)
     samples = zeros(n, d)
     for j in 1:d
@@ -41,7 +46,7 @@ function latin_hypercube(n, bounds)
     return samples
 end
 
-function opt_alg(f, bounds; tol=1e-6, max_iter=100)
+function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
 
     # Generate Latin hypercube samples in the search space
     x_samples = latin_hypercube(100, bounds)
@@ -66,6 +71,8 @@ function opt_alg(f, bounds; tol=1e-6, max_iter=100)
             else
                 x = steepest_descent(grad, x)
             end
+
+            # CHECK if f(x_new) ≤ f(x)
         end
 
         # Update the minimum point and value
