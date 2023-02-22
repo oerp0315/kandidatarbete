@@ -100,6 +100,3 @@ min_point, min_val = opt_alg(f, bounds)
 println("Minimum point: ", min_point)
 println("Minimum value: ", min_val)
 
-#kommentar
-
-print("helloworld")
