@@ -3,7 +3,6 @@ using LinearAlgebra
 using Distributions
 using Random
 using OrdinaryDiffEq
-using LatinHypercubeSampling
 
 function line_step_search(x, dir; alpha=1)
     for i in 1:50
@@ -116,13 +115,14 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
             # f(x_(k-1)) - f(x) <= epsilon2*(1+abs(f(x)))
             # norm of [x_(k-1) - x_k] <= epsilon3*(1+norm of x_k)
 
+            
             a = 0
             eps_1 = 10^-3
             eps_2 = 10^-3
             eps_3 = 10^-3
 
             # termination criteria 1
-            if norm(ForwardDiff.gradient(f, x)) <= eps_1
+            if norm(ForwardDiff.gradient(f, x)) <= eps_1*(1 + abs(f(x))) 
                 a += 1
                 #println(x, " : ", a)
                 
