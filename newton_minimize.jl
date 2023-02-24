@@ -3,6 +3,7 @@ using LinearAlgebra
 using Distributions
 using Random
 using OrdinaryDiffEq
+using LatinHypercubeSampling
 
 function line_step_search(x, dir; alpha=1)
     for i in 1:50
@@ -31,18 +32,46 @@ function steepest_descent(grad, x)
     return x
 end
 
-function latin_hypercube(n, bounds, seed=123)
-
+function latin_hypercube(n_samples, bounds; seed=123)
     Random.seed!(seed)
 
-    d = length(bounds)
-    samples = zeros(n, d)
-    for j in 1:d
-        p = rand(1:n, n)
-        for i in 1:n
-            samples[i, j] = (p[i] - rand()) / n * (bounds[j][2] - bounds[j][1]) + bounds[j][1]
+    if n_samples < 2
+        error("n must be at least 2")
+    end
+
+    n_vars = length(bounds)
+
+    # Initialize the Latin square as an n-by-n array of zeros
+    square = zeros(Int, n_samples, n_samples)
+
+    # Fill the first row with random integers between 1 and n
+    square[1, :] = randperm(n_samples)
+
+    # Fill the remaining rows with shifted copies of the first row
+    for i in 2:n_samples
+        square[i, :] = circshift(square[i-1, :], 1)
+    end
+
+    # create random values to be added to sample values
+    random_matrix = rand(n_samples, n_vars)
+
+    # create a matrix where samples will be inserted to
+    samples = zeros(n_samples, n_vars)
+
+    # generate samples with random position within varible intervals
+    for i in 1:n_samples
+        for j in 1:n_vars
+            samples[i, j] = (square[i, j] - 1) / ((n_samples - 1) * (n_samples / (n_samples - 1))) + random_matrix[i, j] / n_samples
         end
     end
+
+    # scale samples to bounds
+    for i in 1:n_samples
+        for j in 1:n_vars
+            samples[i, j] = (bounds[j][2] - bounds[j][1]) * samples[i, j] + bounds[j][1]
+        end
+    end
+
     return samples
 end
 
@@ -129,8 +158,7 @@ end
 # Define the function to optimize
 f(x) = 4 * x[1]^2 - 2.1 * x[1]^4 + (1 / 3) * x[1]^6 + x[1] * x[2] - 4 * x[2]^2 + 4 * x[2]^4
 
-# Generate Latin hypercube samples
-n = 10
+# Define bounds
 bounds = [(-1, 1), (-1, 1)]
 
 # Find the minimum point and value among the samples
@@ -139,4 +167,3 @@ min_point, min_val = opt_alg(f, bounds)
 # Print the results
 println("Minimum point: ", min_point)
 println("Minimum value: ", min_val)
-
