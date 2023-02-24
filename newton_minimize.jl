@@ -55,7 +55,13 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
     f_min = f(x_min)
 
     for x in eachrow(x_samples)
+        iter = 0 #checking iteration
+        x_start = x #jused only to log
         for i in 1:max_iter
+
+            iter += 1 #used only to log
+            println("start value: ", x_start, ", x: ", x, ", f(x): ", f(x),  ", iteration: ", iter)
+
             # Evaluate the function and its gradient and Hessian at the current point
             grad = ForwardDiff.gradient(f, x)
             hess = ForwardDiff.hessian(f, x)
@@ -64,6 +70,9 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
             if norm(grad) < tol
                 break
             end
+            
+            # To compare with the current x in termination criteria 
+            x_prev = x
 
             # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
             if isposdef(hess)
@@ -72,8 +81,39 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
                 x = steepest_descent(grad, x)
             end
 
-            # CHECK if f(x_new) ≤ f(x)
-        end
+            # Finite termination criteria
+
+            # norm of gradient of f(x) is <= epsilon1*(1+ abs(f(x))
+            # f(x_(k-1)) - f(x) <= epsilon2*(1+abs(f(x)))
+            # norm of [x_(k-1) - x_k] <= epsilon3*(1+norm of x_k)
+
+            a = 0
+            eps_1 = 10^-3
+            eps_2 = 10^-3
+            eps_3 = 10^-3
+
+            # termination criteria 1
+            if norm(ForwardDiff.gradient(f, x)) <= eps_1
+                a += 1
+                #println(x, " : ", a)
+                
+            end
+            # termination criteria 2
+            if f(x) - f(x_prev) <= eps_2*(1+abs(f(x)))
+                a += 1
+                #println(x, " : ", a)
+            end
+            # termination criteria 3
+            if norm(x_prev - x) <= eps_3*(1 + norm(x))
+                a += 1
+                #println(x, " : ", a)
+            end
+
+            if a >= 2
+                break
+            end
+        
+         end
 
         # Update the minimum point and value
         f_val = f(x)
