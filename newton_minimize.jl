@@ -120,25 +120,22 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
             eps_1 = 10^-3
             eps_2 = 10^-3
             eps_3 = 10^-3
-
+            
+            term_criteria = []
             # termination criteria 1
             if norm(ForwardDiff.gradient(f, x)) <= eps_1*(1 + abs(f(x))) 
-                a += 1
-                #println(x, " : ", a)
-                
+                push!(term_criteria, "1")
             end
             # termination criteria 2
             if f(x) - f(x_prev) <= eps_2*(1+abs(f(x)))
-                a += 1
-                #println(x, " : ", a)
+                push!(term_criteria, "2")
             end
             # termination criteria 3
             if norm(x_prev - x) <= eps_3*(1 + norm(x))
-                a += 1
-                #println(x, " : ", a)
+                push!(term_criteria, "3")
             end
 
-            if a >= 2
+            if length(term_criteria) >= 2
                 break
             end
         
