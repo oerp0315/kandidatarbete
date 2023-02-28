@@ -37,8 +37,8 @@ function modell1simulator(θin,c0,ts)
 end
 
 # Kör experiment
-function experimenter(ts,c0)
-      θin = [1 0.5 3 10]
+function experimenter(ts,c0; θin = [1 0.5 3 10], seed=1 )
+      Random.seed!(seed)
       sol = modell1simulator(θin,c0,ts)
       
       noisedistribution = Normal(0,0.03)
@@ -49,8 +49,6 @@ end
 
 
 function kostnadsfunktion(θ,Data::AbstractVector)
-      c0 = [0.5,0,0.5] #Intialkoncentrationer
-      sol= modell1simulator(θ,c0,30)
       error=0
       for data in Data
             sol = modell1simulator(θ,data.c0,data.ts)
@@ -72,6 +70,7 @@ tslut = 10
 cresultat1 = experimenter(tslut,c0)
 plot!([tslut tslut tslut]',cresultat1,seriestype=:scatter) #Plottar experimenten
 
+# Packeterar data till experimentresultat
 data1 = results(c0,cresultat1,tslut)
 Data = [data1]
 println(kostnadsfunktion([2,0.5,3,10],Data))
