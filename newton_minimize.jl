@@ -2,14 +2,18 @@ using ForwardDiff
 using LinearAlgebra
 using Distributions
 using Random
-using OrdinaryDiffEq
+using CSV
+using DataFrames
 
 function line_step_search(x, dir; alpha=1)
+    global is_gradient_descent = true
     for i in 1:50
         x_new = x + alpha * dir
         if f(x_new) < f(x)
             x = x_new
             break
+        elseif i == 50
+            is_gradient_descent = false
         end
         alpha = alpha / 2
     end
@@ -74,31 +78,40 @@ function latin_hypercube(n_samples, bounds; seed=123)
     return samples
 end
 
-function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
+function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000, is_gradient_descent=true)
 
     # Generate Latin hypercube samples in the search space
-    x_samples = latin_hypercube(100, bounds)
+    x_samples = latin_hypercube(100, bounds) # hur många samples vill vi ha?
 
     x_min = x_samples[1, :]
     f_min = f(x_min)
 
-    for x in eachrow(x_samples)
-        iter = 0 #checking iteration
-        x_start = x #jused only to log
-        for i in 1:max_iter
+    # initiate lists for logging results
+    sample_num_list = []
+    sample_num = 0
+    x_current_sample_list = []
+    x_current_iter = []
+    function_values = []
+    term_criteria = []
+    term_reason = []
 
-            iter += 1 #used only to log
-            println("start value: ", x_start, ", x: ", x, ", f(x): ", f(x),  ", iteration: ", iter)
+    # initiate varible for iteration number
+    iter = 0
+
+    for x in eachrow(x_samples)
+        sample_num += 1
+        x_current_samplepoint = x
+        for i in 1:max_iter
+            # increment interation number used for printing current iteration number
+            iter += 1
+
+            # print sample number and interation number 
+            println("Iteration number: ", iter, ", Sample number: ", sample_num)
 
             # Evaluate the function and its gradient and Hessian at the current point
             grad = ForwardDiff.gradient(f, x)
             hess = ForwardDiff.hessian(f, x)
 
-            # Check for convergence
-            if norm(grad) < tol
-                break
-            end
-            
             # To compare with the current x in termination criteria 
             x_prev = x
 
@@ -109,40 +122,43 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
                 x = steepest_descent(grad, x)
             end
 
-            # Finite termination criteria
-
-            # norm of gradient of f(x) is <= epsilon1*(1+ abs(f(x))
-            # f(x_(k-1)) - f(x) <= epsilon2*(1+abs(f(x)))
-            # norm of [x_(k-1) - x_k] <= epsilon3*(1+norm of x_k)
-
-            
-            a = 0
+            # Finite termination criteria            
             eps_1 = 10^-3
             eps_2 = 10^-3
             eps_3 = 10^-3
 
+            current_term_criteria = []
             # termination criteria 1
-            if norm(ForwardDiff.gradient(f, x)) <= eps_1*(1 + abs(f(x))) 
-                a += 1
-                #println(x, " : ", a)
-                
+            if norm(ForwardDiff.gradient(f, x)) <= eps_1 * (1 + abs(f(x)))
+                push!(current_term_criteria, "1")
             end
             # termination criteria 2
-            if f(x) - f(x_prev) <= eps_2*(1+abs(f(x)))
-                a += 1
-                #println(x, " : ", a)
+            if f(x) - f(x_prev) <= eps_2 * (1 + abs(f(x)))
+                push!(current_term_criteria, "2")
             end
             # termination criteria 3
-            if norm(x_prev - x) <= eps_3*(1 + norm(x))
-                a += 1
-                #println(x, " : ", a)
+            if norm(x_prev - x) <= eps_3 * (1 + norm(x))
+                push!(current_term_criteria, "3")
             end
 
-            if a >= 2
+            # logging
+            push!(sample_num_list, sample_num)
+            push!(x_current_sample_list, x_current_samplepoint)
+            push!(x_current_iter, x_prev)
+            push!(function_values, f(x_prev))
+            push!(term_criteria, current_term_criteria)
+
+            if !is_gradient_descent
+                println("Decent direction not found. Moving on to the next sample point.")
+                push!(term_reason, "Decent direction not found")
                 break
+            elseif length(current_term_criteria) >= 2
+                push!(term_reason, "Two or more termination criteria was met")
+                break
+            else
+                push!(term_reason, " ")
             end
-        
-         end
+        end
 
         # Update the minimum point and value
         f_val = f(x)
@@ -152,11 +168,23 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
         end
     end
 
+    ab = DataFrame(Samplepoint=sample_num_list,
+        Currentsample=x_current_sample_list,
+        Iteration=x_current_iter,
+        Functionvalues=function_values,
+        Terminationcriteria=term_criteria,
+        Terminationreason=term_reason)
+
+
+    # modifying the content of myfile.csv using write method
+    CSV.write("data.csv", ab)
+
     return x_min, f_min
 end
 
 # Define the function to optimize
-f(x) = 4 * x[1]^2 - 2.1 * x[1]^4 + (1 / 3) * x[1]^6 + x[1] * x[2] - 4 * x[2]^2 + 4 * x[2]^4
+#f(x) = 4 * x[1]^2 - 2.1 * x[1]^4 + (1 / 3) * x[1]^6 + x[1] * x[2] - 4 * x[2]^2 + 4 * x[2]^4'
+f(x) = -exp(-(x[1] * x[2])^2)
 
 # Define bounds
 bounds = [(-1, 1), (-1, 1)]
