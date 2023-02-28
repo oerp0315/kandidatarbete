@@ -57,6 +57,7 @@ function kostnadsfunktion(θ,Data::AbstractVector)
             cs = sol.u[end]
             error +=sum((cs-data.cslut).^2)
       end
+      print(typeof(error))
       return error
 end
 
