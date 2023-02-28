@@ -2,6 +2,7 @@ using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
 
 #Random.seed!(12)
 
+println("Nu kör vi!!")
 
 # Objekt för experimentresultat
 struct experiment_results
@@ -11,7 +12,7 @@ struct experiment_results
 end
 
 #Funktion för att köra modellen givet parametrar och initialvärden
-function modellsimulator1(θin,c0,ts)
+function modellsimulator1(θin,c0,t_stop)
       @parameters t θ[1:4]     #Parametrar i modellen
       @variables c1(t) c2(t) c3(t)   #Variabler i modellen
       D = Differential(t) #Definierar tecken för derivata
@@ -33,15 +34,15 @@ function modellsimulator1(θin,c0,ts)
            θ[3] =>θin[3],
            θ[4] =>θin[4]] #Definierar värden för parametrarna
 
-      tspan = (0.0, ts) #Tiden vi kör modellen under
+      tspan = (0.0, t_stop) #Tiden vi kör modellen under
       prob = ODEProblem(system, u0, tspan, p, jac = true)  #Definierar vad som ska beräknas
       sol = solve(prob,Rodas5())  #Beräknar lösningen
       return sol
 end
 
 # Kör experiment
-function experimenter(ts,c0; θin = [1 0.5 3 10], standarddeviation=0)
-      sol = modellsimulator1(θin,c0,ts) #Genererar lösningar
+function experimenter(t_final,c0; θin = [1 0.5 3 10], standarddeviation=0)
+      sol = modellsimulator1(θin,c0,t_final) #Genererar lösningar
       noise_distribution = Normal(0,standarddeviation) #Skapar error
       return sol[:,end] + rand(noise_distribution,3) # Lägger till error
 end
@@ -50,7 +51,7 @@ end
 function kostnadsfunktion(θ,experimental_data::AbstractVector)
       error=0
       for data in experimental_data
-            sol = modellsimulator1(θ,data.c0,data.ts)
+            sol = modellsimulator1(θ,data.c0,data.t_final)
             c_final_model = sol.u[end]
             error +=sum((c_final_model-data.c_final).^2)
       end
@@ -59,8 +60,8 @@ end
 
 
 experimental_data = []
-for i = 1:10
-      t_final_data = 30*rand()
+for i = 1:2
+      t_final_data = 2*rand()
       c0_data = [rand(),rand(),rand()]
       c_final_data=experimenter(t_final_data, c0_data)
 
@@ -70,16 +71,16 @@ end
 
 
 
-#println(kostnadsfunktion([1,0.5,3,10],experimental_data))
+println(kostnadsfunktion([1,0.5,3,10],experimental_data))
 
 
 
 # För att Plotta
 
-#θin = [1,0.5,3,10] # Gissar parametervärden
-#c0 = [0.5,0,0.5] #Intialkoncentrationer
-#sol = modell1simulator(θin,c0,30) #Kör modellen
-#plot(sol) #Plottar lösningen
+θin = [1,0.5,3,10] # Gissar parametervärden
+c0 = [0.5,0,0.5] #Intialkoncentrationer
+sol = modellsimulator1(θin,c0,2) #Kör modellen
+plot(sol) #Plottar lösningen
 
 
 # Genererar exprimentresultat
