@@ -1,5 +1,8 @@
 using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
 
+#Random.seed!(12)
+
+
 # Objekt för experimentresultat
 struct results
       c0::AbstractVector
@@ -32,13 +35,13 @@ function modell1simulator(θin,c0,ts)
 
       tspan = (0.0, ts) #Tiden vi kör modellen under
       prob = ODEProblem(sys, u0, tspan, p, jac = true)  #Definierar vad som ska beräknas
-      sol = solve(prob)  #Beräknar lösningen
+      sol = solve(prob,Rodas5())  #Beräknar lösningen
       return sol
 end
 
 # Kör experiment
-function experimenter(ts,c0; θin = [1 0.5 3 10], standarddeviation=0, seed=1 )
-      Random.seed!(seed)
+function experimenter(ts,c0; θin = [1 0.5 3 10], standarddeviation=0)
+
       sol = modell1simulator(θin,c0,ts)
       
       noisedistribution = Normal(0,standarddeviation)
@@ -58,19 +61,36 @@ function kostnadsfunktion(θ,Data::AbstractVector)
       return error
 end
 
+function datagenerator(ts,c0)
+      data = results(c0,experimenter(ts,c0),ts)
+      return data
+end
 
-θin = [1,0.5,3,10] # Gissar parametervärden
-c0 = [0.5,0,0.5] #Intialkoncentrationer
-sol = modell1simulator(θin,c0,30) #Kör modellen
-plot(sol) #Plottar lösningen
+Data = []
+for i = 1:10
+      tsdata = 30*rand()
+      c0data = [rand(),rand(),rand()]
+      data = datagenerator(tsdata,c0data)
+      push!(Data,data)
+end
+
+
+#println(kostnadsfunktion([1,0.5,3,10],Data))
+
+
+
+# För att Plotta
+
+#θin = [1,0.5,3,10] # Gissar parametervärden
+#c0 = [0.5,0,0.5] #Intialkoncentrationer
+#sol = modell1simulator(θin,c0,30) #Kör modellen
+#plot(sol) #Plottar lösningen
 
 
 # Genererar exprimentresultat
-tslut = 10
-cresultat1 = experimenter(tslut,c0)
-plot!([tslut tslut tslut]',cresultat1,seriestype=:scatter) #Plottar experimenten
+#tslut = 10
+#cresultat1 = experimenter(tslut,c0)
+#plot!([tslut tslut tslut]',cresultat1,seriestype=:scatter) #Plottar experimenten
 
 # Packeterar data till experimentresultat
-data1 = results(c0,cresultat1,tslut)
-Data = [data1]
-println(kostnadsfunktion([2,0.5,3,10],Data))
+#data1 = results(c0,cresultat1,tslut)
