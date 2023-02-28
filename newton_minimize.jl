@@ -123,29 +123,22 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000, is_gradient_desce
                 break
             end
 
-            # Finite termination criteria
-
-            # norm of gradient of f(x) is <= epsilon1*(1 + abs(f(x))
-            # f(x_(k-1)) - f(x) <= epsilon2*(1+abs(f(x)))
-            # norm of [x_(k-1) - x_k] <= epsilon3*(1+norm of x_k)
-
-
-            a = 0
+            # Finite termination criteria            
             eps_1 = 10^-3
             eps_2 = 10^-3
             eps_3 = 10^-3
-            
+
             term_criteria = []
             # termination criteria 1
-            if norm(ForwardDiff.gradient(f, x)) <= eps_1*(1 + abs(f(x))) 
+            if norm(ForwardDiff.gradient(f, x)) <= eps_1 * (1 + abs(f(x)))
                 push!(term_criteria, "1")
             end
             # termination criteria 2
-            if f(x) - f(x_prev) <= eps_2*(1+abs(f(x)))
+            if f(x) - f(x_prev) <= eps_2 * (1 + abs(f(x)))
                 push!(term_criteria, "2")
             end
             # termination criteria 3
-            if norm(x_prev - x) <= eps_3*(1 + norm(x))
+            if norm(x_prev - x) <= eps_3 * (1 + norm(x))
                 push!(term_criteria, "3")
             end
 
