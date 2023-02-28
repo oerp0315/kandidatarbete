@@ -37,11 +37,11 @@ function modell1simulator(θin,c0,ts)
 end
 
 # Kör experiment
-function experimenter(ts,c0; θin = [1 0.5 3 10], seed=1 )
+function experimenter(ts,c0; θin = [1 0.5 3 10], standarddeviation=0, seed=1 )
       Random.seed!(seed)
       sol = modell1simulator(θin,c0,ts)
       
-      noisedistribution = Normal(0,0.03)
+      noisedistribution = Normal(0,standarddeviation)
       cslut = sol[:,end] + rand(noisedistribution,3)
 
       return cslut
@@ -55,7 +55,6 @@ function kostnadsfunktion(θ,Data::AbstractVector)
             cs = sol.u[end]
             error +=sum((cs-data.cslut).^2)
       end
-      print(typeof(error))
       return error
 end
 

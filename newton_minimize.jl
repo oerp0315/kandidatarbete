@@ -4,6 +4,7 @@ using Distributions
 using Random
 using CSV
 using DataFrames
+include("kinetik1.jl")
 
 function line_step_search(x, dir; alpha=1)
     global is_gradient_descent = true
@@ -184,10 +185,11 @@ end
 
 # Define the function to optimize
 #f(x) = 4 * x[1]^2 - 2.1 * x[1]^4 + (1 / 3) * x[1]^6 + x[1] * x[2] - 4 * x[2]^2 + 4 * x[2]^4'
-f(x) = -exp(-(x[1] * x[2])^2)
+#f(x) = -exp(-(x[1] * x[2])^2)
+f(x) = kostnadsfunktion(x,Data)
 
 # Define bounds
-bounds = [(-1, 1), (-1, 1)]
+bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
 
 # Find the minimum point and value among the samples
 min_point, min_val = opt_alg(f, bounds)
