@@ -1,77 +1,77 @@
-using DifferentialEquations, ModelingToolkit
+using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
+
+# Objekt för experimentresultat
+struct results
+      c0::AbstractVector
+      cslut::AbstractVector
+      ts::Number
+end
 
 #Funktion för att köra modellen givet parametrar och initialvärden
-function kineticmodell1simulator(kgissning,cvidt0)
-      @parameters t k[1:4]     #Parametrar i modellen
+function modell1simulator(θin,c0,ts)
+      @parameters t θ[1:4]     #Parametrar i modellen
       @variables c1(t) c2(t) c3(t)   #Variabler i modellen
       D = Differential(t) #Definierar tecken för derivata
 
-      eqs = [D(c1) ~ -k[1]*c1+k[2]*c2,
-            D(c2) ~ k[1]*c1-k[2]*c2-k[3]*c2+k[4]*c3,
-            D(c3) ~ k[3]*c2-k[4]*c3]  #Uttryck för systemet som diffrentialekvationer
+      eqs = [D(c1) ~ -θ[1]*c1+θ[2]*c2,
+            D(c2) ~ θ[1]*c1-θ[2]*c2-θ[3]*c2+θ[4]*c3,
+            D(c3) ~ θ[3]*c2-θ[4]*c3]  #Uttryck för systemet som diffrentialekvationer
 
 
       @named sys = ODESystem(eqs) #Definierar av som är systemet från diffrentialekvationerna
       sys = structural_simplify(sys) #Skriver om systemet så det blir lösbart
 
-      u0 = [c1=>cvidt0[1],
-            c2=>cvidt0[2],
-            c3=>cvidt0[3]] #Definierar initialvärden
+      u0 = [c1=>c0[1],
+            c2=>c0[2],
+            c3=>c0[3]] #Definierar initialvärden
 
-      p = [k[1] =>kgissning[1],
-           k[2] =>kgissning[2],
-           k[3] =>kgissning[3],
-           k[4] =>kgissning[4]] #Definierar värden för parametrarna
+      p = [θ[1] =>θin[1],
+           θ[2] =>θin[2],
+           θ[3] =>θin[3],
+           θ[4] =>θin[4]] #Definierar värden för parametrarna
 
-      tspan = (0.0, 30.0) #Tiden vi kör modellen under
+      tspan = (0.0, ts) #Tiden vi kör modellen under
       prob = ODEProblem(sys, u0, tspan, p, jac = true)  #Definierar vad som ska beräknas
       sol = solve(prob)  #Beräknar lösningen
       return sol
 end
 
-
-kgissning = [1 0.5 3 10] # Gissar parametervärden
-cvidt0 = [0.5 0 0.5] #Intialkoncentrationer
-sol = kineticmodell1simulator(kgissning,cvidt0) #Kör modellen
-
-
 # Kör experiment
-using Random, Distributions
-function experimenter(ttest,numberofexperiments)
-      kgissning = [1 0.5 3 10]
-      cvidt0 = [0.5 0 0.5]
-      sol = kineticmodell1simulator(kgissning,cvidt0)
+function experimenter(ts,c0)
+      θin = [1 0.5 3 10]
+      sol = modell1simulator(θin,c0,ts)
       
-      cslut=zeros(Float64,3,numberofexperiments)
-      tslut=zeros(Float64,1,numberofexperiments)
+      noisedistribution = Normal(0,0.03)
+      cslut = sol[:,end] + rand(noisedistribution,3)
 
-      # Introducerar brus i datan
-      for n =1:numberofexperiments
-            noisedistribution = Normal(0,0.03)
-            i = findfirst(t-> t>=ttest, sol.t)
-            cslut[:,n]= sol[:,i]+rand(noisedistribution,3)
-            tslut[n] = sol.t[i]
+      return cslut
+end
+
+
+function kostnadsfunktion(θ,Data::AbstractVector)
+      c0 = [0.5,0,0.5] #Intialkoncentrationer
+      sol= modell1simulator(θ,c0,30)
+      error=0
+      for data in Data
+            sol = modell1simulator(θ,data.c0,data.ts)
+            cs = sol.u[end]
+            error +=sum((cs-data.cslut).^2)
       end
-
-      return cslut,tslut
-
+      return error
 end
 
-cslut,tslut =experimenter(10,2)
 
-using Plots
-plot(sol, idxs = (t, [c1 c2 c3])) #Plottar lösningen
-plot!([tslut tslut tslut]',cslut,seriestype=:scatter) #Plottar experimenten
+θin = [1,0.5,3,10] # Gissar parametervärden
+c0 = [0.5,0,0.5] #Intialkoncentrationer
+sol = modell1simulator(θin,c0,30) #Kör modellen
+plot(sol) #Plottar lösningen
 
 
-struct experimentresults
-      c::Matrix{Float64}
-      a_float::Vector{Float64}
-end
+# Genererar exprimentresultat
+tslut = 10
+cresultat1 = experimenter(tslut,c0)
+plot!([tslut tslut tslut]',cresultat1,seriestype=:scatter) #Plottar experimenten
 
-function minimeringsfunktion(k)
-      cvidt0 = [0.5 0 0.5] #Intialkoncentrationer
-      sol= kineticmodell1simulator(k,cvidt0)
-
-end
-
+data1 = results(c0,cresultat1,tslut)
+Data = [data1]
+println(kostnadsfunktion([2,0.5,3,10],Data))
