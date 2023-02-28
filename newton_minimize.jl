@@ -137,7 +137,6 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000, is_gradient_desce
             
             term_criteria = []
             # termination criteria 1
-<<<<<<< HEAD
             if norm(ForwardDiff.gradient(f, x)) <= eps_1*(1 + abs(f(x))) 
                 push!(term_criteria, "1")
             end
@@ -148,22 +147,6 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000, is_gradient_desce
             # termination criteria 3
             if norm(x_prev - x) <= eps_3*(1 + norm(x))
                 push!(term_criteria, "3")
-=======
-            if norm(ForwardDiff.gradient(f, x)) <= eps_1 * (1 + abs(f(x)))
-                a += 1
-                #println(x, " : ", a)
-
-            end
-            # termination criteria 2
-            if f(x) - f(x_prev) <= eps_2 * (1 + abs(f(x)))
-                a += 1
-                #println(x, " : ", a)
-            end
-            # termination criteria 3
-            if norm(x_prev - x) <= eps_3 * (1 + norm(x))
-                a += 1
-                #println(x, " : ", a)
->>>>>>> fb1fc6e32f0dc87ad067a5c3606920cee982d3b9
             end
 
             if length(term_criteria) >= 2
