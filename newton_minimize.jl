@@ -128,13 +128,16 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000, is_gradient_desce
             eps_2 = 10^-3
             eps_3 = 10^-3
 
+            # calculate function value used in termination criteria
+            function_value = f(x)
+
             current_term_criteria = []
             # termination criteria 1
-            if norm(ForwardDiff.gradient(f, x)) <= eps_1 * (1 + abs(f(x)))
+            if norm(grad) <= eps_1 * (1 + abs(function_value))
                 push!(current_term_criteria, "1")
             end
             # termination criteria 2
-            if f(x) - f(x_prev) <= eps_2 * (1 + abs(f(x)))
+            if  f(x_prev) - function_value <= eps_2 * (1 + abs(function_value))
                 push!(current_term_criteria, "2")
             end
             # termination criteria 3
