@@ -79,7 +79,7 @@ function latin_hypercube(n_samples, bounds; seed=123)
     return samples
 end
 
-function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000, is_gradient_descent=true)
+function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
 
     # Generate Latin hypercube samples in the search space
     x_samples = latin_hypercube(100, bounds) # hur många samples vill vi ha?
@@ -184,9 +184,7 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000, is_gradient_desce
 end
 
 # Define the function to optimize
-#f(x) = 4 * x[1]^2 - 2.1 * x[1]^4 + (1 / 3) * x[1]^6 + x[1] * x[2] - 4 * x[2]^2 + 4 * x[2]^4'
-#f(x) = -exp(-(x[1] * x[2])^2)
-f(x) = kostnadsfunktion(x,Data)
+f(x) = kostnadsfunktion(x, experimental_data)
 
 # Define bounds
 bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
