@@ -13,7 +13,7 @@ end
 
 
 # Funktion för att initiera ODE modell
-function modelinitialize1()
+function model_initialize1()
       @parameters t θ[1:4]     #Parametrar i modellen
       @variables c1(t) c2(t) c3(t)   #Variabler i modellen
       D = Differential(t) #Definierar tecken för derivata
@@ -52,14 +52,14 @@ function model_solver1(_problem_object, θin,c0,t_stop)
 end
 
 # Kör experiment
-function experimenter(problem_object, t_stop,c0; θin = [1 0.5 3 10], standarddeviation=0)
+function experimenter(problem_object, t_stop,c0, standard_deviation, θin)
       solution = model_solver1(problem_object, θin,c0,t_stop) #Genererar lösningar
-      noise_distribution = Normal(0,standarddeviation) #Skapar error
+      noise_distribution = Normal(0,standard_deviation) #Skapar error
       return solution[:,end] + rand(noise_distribution,3) # Lägger till error
 end
 
 
-function kostnadsfunktion(problem_object, θ,experimental_data::AbstractVector)
+function cost_function(problem_object, θ,experimental_data::AbstractVector)
       error=0
       for data in experimental_data
             sol = model_solver1(problem_object, θ, data.c0, data.t_final)
@@ -71,57 +71,53 @@ function kostnadsfunktion(problem_object, θ,experimental_data::AbstractVector)
       return error
 end
 
-problem_object = modelinitialize1()
+function random_dataset_generator(problem_object, number_of_experiments; standard_deviation=0.03, θin = [1 0.5 3 10] )
+      experimental_data = []
+      for i = 1:number_of_experiments
+            t_final_data = 2*rand() #Genererar slumpmässiga sluttider
+            c0_data = [rand(),rand(),rand()]    #Genererar slumpmässiga intial koncentrationer
+            c_final_data = experimenter(problem_object, t_final_data, c0_data, standard_deviation, θin)
 
-experimental_data = []
-for i = 1:2
-      t_final_data = 2*rand() #Genererar slumpmässiga sluttider
-      c0_data = [rand(),rand(),rand()]    #Genererar slumpmässiga intial koncentrationer
-      c_final_data = experimenter(problem_object, t_final_data, c0_data)
+            current_data = experiment_results(c0_data,c_final_data, t_final_data)
+            push!(experimental_data, current_data)
+      end
+      return(experimental_data)
+end
 
-      current_data = experiment_results(c0_data,c_final_data, t_final_data)
-      push!(experimental_data, current_data)
+function plot_exact_example(problem_object)
+      θin = [1,0.5,3,10] # Gissar parametervärden
+      c0 = [0.5,0,0.5] #Intialkoncentrationer
+      sol = model_solver1(problem_object, θin,c0,2) #Kör modellen
+      plot!(sol) #Plottar lösningen
+      sol
+end
+
+function plot_experiment(experimental_data)
+      for data in experimental_data
+            plot!(data.t_final* ones(length(data.c_final)), data.c_final, seriestype=:scatter) #Plottar lösningen
+      end
+end
+
+experimental_data = random_dataset_generator(problem_object, 2)
+problem_object = model_initialize1()
+
+
+plot()
+plot_experiment(experimental_data)
+
+for data in experimental_data
+      #plot!(data.t_final), data.c_final, seriestype=:scatter) #Plottar lösningen
 end
 
 
-println(kostnadsfunktion(problem_object, [1,0.5,3,10], experimental_data))
+# printar kostnaden av exakta punkten. Borde ge 0.0
+println(cost_function(problem_object, [1,0.5,3,10], experimental_data))
+
 
 
 
 # För att Plotta
-θin = [1,0.5,3,10] # Gissar parametervärden
-c0 = [0.5,0,0.5] #Intialkoncentrationer
-sol = model_solver1(problem_object, θin,c0,2) #Kör modellen
-plot(sol) #Plottar lösningen
-
-
-#Gammal model formulering som intierar koden varje gång
-#=
-function modellsimulator1(θin,c0,t_stop)
-      @parameters t θ[1:4]     #Parametrar i modellen
-      @variables c1(t) c2(t) c3(t)   #Variabler i modellen
-      D = Differential(t) #Definierar tecken för derivata
-
-      equation_system = [D(c1) ~ -θ[1]*c1+θ[2]*c2,
-            D(c2) ~ θ[1]*c1-θ[2]*c2-θ[3]*c2+θ[4]*c3,
-            D(c3) ~ θ[3]*c2-θ[4]*c3]  #Uttryck för systemet som diffrentialekvationer
-
-
-      @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
-      system = structural_simplify(system) #Skriver om systemet så det blir lösbart
-
-      u0 = [c1=>c0[1],
-            c2=>c0[2],
-            c3=>c0[3]] #Definierar initialvärden
-
-      p = [θ[1] =>θin[1],
-           θ[2] =>θin[2],
-           θ[3] =>θin[3],
-           θ[4] =>θin[4]] #Definierar värden för parametrarna
-
-      tspan = (0.0, t_stop) #Tiden vi kör modellen under
-      prob = ODEProblem(system, u0, tspan, p, jac = true)  #Definierar vad som ska beräknas
-      sol = solve(prob,Rodas5())  #Beräknar lösningen
-      return sol
-end
-=#
+#θin = [1,0.5,3,10] # Gissar parametervärden
+#c0 = [0.5,0,0.5] #Intialkoncentrationer
+#sol = model_solver1(problem_object, θin,c0,2) #Kör modellen
+#plot(sol) #Plottar lösningen

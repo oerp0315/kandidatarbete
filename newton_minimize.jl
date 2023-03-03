@@ -187,7 +187,7 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
 end
 
 # Define the function to optimize
-f(x) = kostnadsfunktion(x, experimental_data)
+f(x) = cost_function(problem_object, x, experimental_data)
 
 # Define bounds
 bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
