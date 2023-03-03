@@ -1,5 +1,9 @@
 using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
 
+#Random.seed!(12)
+
+println("Nu kör vi!!")
+
 # Objekt för experimentresultat
 struct experiment_results
       c0::AbstractVector
@@ -7,83 +11,117 @@ struct experiment_results
       t_final::Number
 end
 
-#Funktion för att köra modellen givet parametrar och initialvärden
-function modellsimulator1(θin, c0, t_stop)
+
+# Funktion för att initiera ODE modell
+function modelinitialize1()
       @parameters t θ[1:4]     #Parametrar i modellen
       @variables c1(t) c2(t) c3(t)   #Variabler i modellen
       D = Differential(t) #Definierar tecken för derivata
 
-      equation_system = [D(c1) ~ -θ[1] * c1 + θ[2] * c2,
-                         D(c2) ~ θ[1] * c1 - θ[2] * c2 - θ[3] * c2 + θ[4] * c3,
-                         D(c3) ~ θ[3] * c2 - θ[4] * c3]  #Uttryck för systemet som diffrentialekvationer
+      equation_system = [D(c1) ~ -θ[1]*c1+θ[2]*c2,
+            D(c2) ~ θ[1]*c1-θ[2]*c2-θ[3]*c2+θ[4]*c3,
+            D(c3) ~ θ[3]*c2-θ[4]*c3]  #Uttryck för systemet som diffrentialekvationer
 
 
       @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
       system = structural_simplify(system) #Skriver om systemet så det blir lösbart
 
-      u0 = [c1 => c0[1],
-            c2 => c0[2],
-            c3 => c0[3]] #Definierar initialvärden
+      # Intialvärden som kommer skrivas över
+      c0 = [0,0,0]
+      θin = [0,0,0,0]
 
-      p = [θ[1] => θin[1],
-           θ[2] => θin[2],
-           θ[3] => θin[3],
-           θ[4] => θin[4]] #Definierar värden för parametrarna
+      u0 = [c1=>c0[1],
+            c2=>c0[2],
+            c3=>c0[3]] #Definierar initialvärden
 
-      tspan = (0.0, t_stop) #Tiden vi kör modellen under
-      prob = ODEProblem(system, u0, tspan, p, jac=true)  #Definierar vad som ska beräknas
-      sol = solve(prob, Rodas5P(), abstol=1e-8, reltol=1e-8)  #Beräknar lösningen
-      return sol
+      p = [θ[1] =>θin[1],
+           θ[2] =>θin[2],
+           θ[3] =>θin[3],
+           θ[4] =>θin[4]] #Definierar värden för parametrarna
+
+      tspan = (0.0, 10) #Tiden vi kör modellen under
+      problem_object = ODEProblem(system, u0, tspan, p, jac = true)  #Definierar vad som ska beräknas
+      return problem_object
+end
+
+# Funktion för att lösa ODE-problem med givna parametrar, intialvärden och sluttid
+function model_solver1(_problem_object, θin,c0,t_stop)
+      problem_object = remake(_problem_object, u0 = convert.(eltype(θin), c0), tspan = (0.0, t_stop), p = θin)
+      solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
+      return solution
 end
 
 # Kör experiment
-function experimenter(t_final, c0; θin=[1 0.5 3 10], standarddeviation=0)
-      sol = modellsimulator1(θin, c0, t_final) #Genererar lösningar
-      noise_distribution = Normal(0, standarddeviation) #Skapar error
-      return sol[:, end] + rand(noise_distribution, 3) # Lägger till error
+function experimenter(problem_object, t_stop,c0; θin = [1 0.5 3 10], standarddeviation=0)
+      solution = model_solver1(problem_object, θin,c0,t_stop) #Genererar lösningar
+      noise_distribution = Normal(0,standarddeviation) #Skapar error
+      return solution[:,end] + rand(noise_distribution,3) # Lägger till error
 end
 
 
-function kostnadsfunktion(θ, experimental_data::AbstractVector)
-      error = 0
+function kostnadsfunktion(problem_object, θ,experimental_data::AbstractVector)
+      error=0
       for data in experimental_data
-            sol = modellsimulator1(θ, data.c0, data.t_final)
-
-            #if sol.retcode != :Succcess
-             #     return Inf
-            #end
+            sol = model_solver1(problem_object, θ, data.c0, data.t_final)
+            #sol = modellsimulator1(θ,data.c0,data.t_final)
 
             c_final_model = sol.u[end]
-            error += sum((c_final_model - data.c_final) .^ 2)
+            error += sum((c_final_model-data.c_final).^2)
       end
       return error
 end
 
+problem_object = modelinitialize1()
 
 experimental_data = []
 for i = 1:2
-      t_final_data = 2 * rand()
-      c0_data = [rand(), rand(), rand()]
-      c_final_data = experimenter(t_final_data, c0_data)
+      t_final_data = 2*rand() #Genererar slumpmässiga sluttider
+      c0_data = [rand(),rand(),rand()]    #Genererar slumpmässiga intial koncentrationer
+      c_final_data = experimenter(problem_object, t_final_data, c0_data)
 
-      current_data = experiment_results(c0_data, c_final_data, t_final_data)
+      current_data = experiment_results(c0_data,c_final_data, t_final_data)
       push!(experimental_data, current_data)
 end
 
-#println(kostnadsfunktion([1,0.5,3,10],experimental_data))
+
+println(kostnadsfunktion(problem_object, [1,0.5,3,10], experimental_data))
+
+
 
 # För att Plotta
-
-θin = [1, 0.5, 3, 10] # Gissar parametervärden
-c0 = [0.5, 0, 0.5] #Intialkoncentrationer
-sol = modellsimulator1(θin, c0, 2) #Kör modellen
+θin = [1,0.5,3,10] # Gissar parametervärden
+c0 = [0.5,0,0.5] #Intialkoncentrationer
+sol = model_solver1(problem_object, θin,c0,2) #Kör modellen
 plot(sol) #Plottar lösningen
 
 
-# Genererar exprimentresultat
-#tslut = 10
-#cresultat1 = experimenter(tslut,c0)
-#plot!([tslut tslut tslut]',cresultat1,seriestype=:scatter) #Plottar experimenten
+#Gammal model formulering som intierar koden varje gång
+#=
+function modellsimulator1(θin,c0,t_stop)
+      @parameters t θ[1:4]     #Parametrar i modellen
+      @variables c1(t) c2(t) c3(t)   #Variabler i modellen
+      D = Differential(t) #Definierar tecken för derivata
 
-# Packeterar data till experimentresultat
-#data1 = results(c0,cresultat1,tslut)
+      equation_system = [D(c1) ~ -θ[1]*c1+θ[2]*c2,
+            D(c2) ~ θ[1]*c1-θ[2]*c2-θ[3]*c2+θ[4]*c3,
+            D(c3) ~ θ[3]*c2-θ[4]*c3]  #Uttryck för systemet som diffrentialekvationer
+
+
+      @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
+      system = structural_simplify(system) #Skriver om systemet så det blir lösbart
+
+      u0 = [c1=>c0[1],
+            c2=>c0[2],
+            c3=>c0[3]] #Definierar initialvärden
+
+      p = [θ[1] =>θin[1],
+           θ[2] =>θin[2],
+           θ[3] =>θin[3],
+           θ[4] =>θin[4]] #Definierar värden för parametrarna
+
+      tspan = (0.0, t_stop) #Tiden vi kör modellen under
+      prob = ODEProblem(system, u0, tspan, p, jac = true)  #Definierar vad som ska beräknas
+      sol = solve(prob,Rodas5())  #Beräknar lösningen
+      return sol
+end
+=#
