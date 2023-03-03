@@ -14,8 +14,8 @@ function modellsimulator1(θin, c0, t_stop)
       D = Differential(t) #Definierar tecken för derivata
 
       equation_system = [D(c1) ~ -θ[1] * c1 + θ[2] * c2,
-            D(c2) ~ θ[1] * c1 - θ[2] * c2 - θ[3] * c2 + θ[4] * c3,
-            D(c3) ~ θ[3] * c2 - θ[4] * c3]  #Uttryck för systemet som diffrentialekvationer
+                         D(c2) ~ θ[1] * c1 - θ[2] * c2 - θ[3] * c2 + θ[4] * c3,
+                         D(c3) ~ θ[3] * c2 - θ[4] * c3]  #Uttryck för systemet som diffrentialekvationer
 
 
       @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
@@ -26,13 +26,13 @@ function modellsimulator1(θin, c0, t_stop)
             c3 => c0[3]] #Definierar initialvärden
 
       p = [θ[1] => θin[1],
-            θ[2] => θin[2],
-            θ[3] => θin[3],
-            θ[4] => θin[4]] #Definierar värden för parametrarna
+           θ[2] => θin[2],
+           θ[3] => θin[3],
+           θ[4] => θin[4]] #Definierar värden för parametrarna
 
       tspan = (0.0, t_stop) #Tiden vi kör modellen under
       prob = ODEProblem(system, u0, tspan, p, jac=true)  #Definierar vad som ska beräknas
-      sol = solve(prob, Rodas5())  #Beräknar lösningen
+      sol = solve(prob, Rodas5P(), abstol=1e-8, reltol=1e-8)  #Beräknar lösningen
       return sol
 end
 
@@ -48,6 +48,11 @@ function kostnadsfunktion(θ, experimental_data::AbstractVector)
       error = 0
       for data in experimental_data
             sol = modellsimulator1(θ, data.c0, data.t_final)
+
+            #if sol.retcode != :Succcess
+             #     return Inf
+            #end
+
             c_final_model = sol.u[end]
             error += sum((c_final_model - data.c_final) .^ 2)
       end
