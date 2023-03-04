@@ -6,7 +6,7 @@ using CSV
 using DataFrames
 include("kinetik1.jl")
 
-function line_step_search(x, dir; alpha=1)
+function line_step_search(x, dir; alpha=1.0)
     global is_gradient_descent = true
     for i in 1:50
         x_new = x + alpha * dir
@@ -79,27 +79,30 @@ function latin_hypercube(n_samples, bounds; seed=123)
     return samples
 end
 
-function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
+function remove_zeros(v::AbstractVector)
+    return filter(x -> x != 0, v)
+end
+
+function opt_alg(f::Function, bounds; max_iter=1000)
 
     # Generate Latin hypercube samples in the search space
-    x_samples = latin_hypercube(100, bounds) # hur många samples vill vi ha?
-
+    x_samples = latin_hypercube(100, bounds)
     x_min = x_samples[1, :]
     f_min = f(x_min)
 
-    # initiate lists for logging results
-    sample_num_list = []
-    sample_num = 0
-    x_current_sample_list = []
-    x_current_iter = []
-    function_values = []
-    term_criteria = []
-    term_reason = []
-
-    # initiate varible for iteration number
+    # initiate varible for iteration and sample number
     iter = 0
-
+    sample_num = 0
     for x in eachrow(x_samples)
+
+        # initiate lists for logging results
+        sample_num_list::Vector{Int64} = zeros(max_iter)
+        x_current_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
+        x_current_iter::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
+        function_values = zeros(max_iter)
+        term_criteria::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
+        term_reason::Vector{Union{Float64,String}} = zeros(max_iter)
+
         sample_num += 1
         x_current_samplepoint = x
         for i in 1:max_iter
@@ -137,7 +140,7 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
                 push!(current_term_criteria, "1")
             end
             # termination criteria 2
-            if  f(x_prev) - function_value <= eps_2 * (1 + abs(function_value))
+            if f(x_prev) - function_value <= eps_2 * (1 + abs(function_value))
                 push!(current_term_criteria, "2")
             end
             # termination criteria 3
@@ -146,23 +149,33 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
             end
 
             # logging
-            push!(sample_num_list, sample_num)
-            push!(x_current_sample_list, x_current_samplepoint)
-            push!(x_current_iter, x_prev)
-            push!(function_values, f(x_prev))
-            push!(term_criteria, current_term_criteria)
+            sample_num_list[i] = sample_num
+            x_current_sample_list[i] = x_current_samplepoint
+            x_current_iter[i] = x_prev
+            function_values[i] = f(x_prev)
+            term_criteria[i] = current_term_criteria
 
             if !is_gradient_descent
                 println("Decent direction not found. Moving on to the next sample point.")
-                push!(term_reason, "Decent direction not found")
+                term_reason[i] = "Decent direction not found"
                 break
             elseif length(current_term_criteria) >= 2
-                push!(term_reason, "Two or more termination criteria was met")
+                term_reason[i] = "Two or more termination criteria was met"
                 break
             else
-                push!(term_reason, " ")
+                term_reason[i] = " "
             end
         end
+
+        data = DataFrame(Samplepoint=remove_zeros(sample_num_list),
+            Currentsample=remove_zeros(x_current_sample_list),
+            Iteration=remove_zeros(x_current_iter),
+            Functionvalues=remove_zeros(function_values),
+            Terminationcriteria=remove_zeros(term_criteria),
+            Terminationreason=remove_zeros(term_reason))
+
+        # modifying the content of myfile.csv using write method
+        CSV.write("data.csv", data; append=true)
 
         # Update the minimum point and value
         f_val = f(x)
@@ -171,17 +184,6 @@ function opt_alg(f::Function, bounds; tol=1e-6, max_iter=1000)
             f_min = f_val
         end
     end
-
-    ab = DataFrame(Samplepoint=sample_num_list,
-        Currentsample=x_current_sample_list,
-        Iteration=x_current_iter,
-        Functionvalues=function_values,
-        Terminationcriteria=term_criteria,
-        Terminationreason=term_reason)
-
-
-    # modifying the content of myfile.csv using write method
-    CSV.write("data.csv", ab)
 
     return x_min, f_min
 end
