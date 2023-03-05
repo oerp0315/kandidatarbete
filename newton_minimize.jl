@@ -4,10 +4,11 @@ using Distributions
 using Random
 using CSV
 using DataFrames
+using DelimitedFiles
 include("kinetik1.jl")
 
-function line_step_search(x, dir; alpha=1.0)
-    global is_gradient_descent = true
+function line_step_search(f::Function, x, dir; alpha=1.0)
+    is_gradient_descent = true
     for i in 1:50
         x_new = x + alpha * dir
         if f(x_new) < f(x)
@@ -19,64 +20,70 @@ function line_step_search(x, dir; alpha=1.0)
         alpha = alpha / 2
     end
 
-    return alpha
+    return alpha, is_gradient_descent
 end
 
-function newton_method(grad, hess, x)
+function newton_method(f::Function, grad, hess, x)
     dir = -hess \ grad
-    x += line_step_search(x, dir) * dir
+    alpha, is_gradient_descent = line_step_search(f, x, dir)
+    x += alpha * dir
 
-    return x
+    return x, is_gradient_descent
 end
 
-function steepest_descent(grad, x)
+function steepest_descent(f::Function, grad, x)
     dir = -grad / norm(grad)
-    x += line_step_search(x, dir) * dir
+    alpha, is_gradient_descent = line_step_search(f, x, dir)
+    x += alpha * dir
 
-    return x
+    return x, is_gradient_descent
 end
 
 function latin_hypercube(n_samples, bounds; seed=123)
     Random.seed!(seed)
 
-    if n_samples < 2
-        error("n must be at least 2")
-    end
+    if isfile("latin_hypercube.csv")
+        return readdlm("latin_hypercube.csv", Float64)
+    else
+        n_vars = length(bounds)
 
-    n_vars = length(bounds)
+        # Initialize the Latin square as an n-by-n array of zeros
+        square = zeros(Int, n_samples, n_samples)
 
-    # Initialize the Latin square as an n-by-n array of zeros
-    square = zeros(Int, n_samples, n_samples)
+        # Fill the first row with random integers between 1 and n
+        square[1, :] = randperm(n_samples)
 
-    # Fill the first row with random integers between 1 and n
-    square[1, :] = randperm(n_samples)
-
-    # Fill the remaining rows with shifted copies of the first row
-    for i in 2:n_samples
-        square[i, :] = circshift(square[i-1, :], 1)
-    end
-
-    # create random values to be added to sample values
-    random_matrix = rand(n_samples, n_vars)
-
-    # create a matrix where samples will be inserted to
-    samples = zeros(n_samples, n_vars)
-
-    # generate samples with random position within varible intervals
-    for i in 1:n_samples
-        for j in 1:n_vars
-            samples[i, j] = (square[i, j] - 1) / ((n_samples - 1) * (n_samples / (n_samples - 1))) + random_matrix[i, j] / n_samples
+        # Fill the remaining rows with shifted copies of the first row
+        for i in 2:n_samples
+            square[i, :] = circshift(square[i-1, :], 1)
         end
-    end
 
-    # scale samples to bounds
-    for i in 1:n_samples
-        for j in 1:n_vars
-            samples[i, j] = (bounds[j][2] - bounds[j][1]) * samples[i, j] + bounds[j][1]
+        # create random values to be added to sample values
+        random_matrix = rand(n_samples, n_vars)
+
+        # create a matrix where samples will be inserted to
+        samples = zeros(n_samples, n_vars)
+
+        # generate samples with random position within varible intervals
+        for i in 1:n_samples
+            for j in 1:n_vars
+                samples[i, j] = (square[i, j] - 1) / ((n_samples - 1) * (n_samples / (n_samples - 1))) + random_matrix[i, j] / n_samples
+            end
         end
-    end
 
-    return samples
+        # scale samples to bounds
+        for i in 1:n_samples
+            for j in 1:n_vars
+                samples[i, j] = (bounds[j][2] - bounds[j][1]) * samples[i, j] + bounds[j][1]
+            end
+        end
+
+        open("latin_hypercube.csv", "w") do io
+            writedlm(io, samples)
+        end
+
+        return samples
+    end
 end
 
 function remove_zeros(v::AbstractVector)
@@ -86,15 +93,19 @@ end
 function opt_alg(f::Function, bounds; max_iter=1000)
 
     # Generate Latin hypercube samples in the search space
-    x_samples = latin_hypercube(100, bounds)
+    n_samples = 100
+    x_samples = latin_hypercube(n_samples, bounds)
     x_min = x_samples[1, :]
     f_min = f(x_min)
 
     # initiate varible for iteration and sample number
     iter = 0
     sample_num = 0
-    for x in eachrow(x_samples)
 
+    # initiate a vector for logging for time consumed to find minimum for samples
+    time_log = zeros(n_samples)
+
+    for x in eachrow(x_samples)
         # initiate lists for logging results
         sample_num_list::Vector{Int64} = zeros(max_iter)
         x_current_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
@@ -105,7 +116,8 @@ function opt_alg(f::Function, bounds; max_iter=1000)
 
         sample_num += 1
         x_current_samplepoint = x
-        for i in 1:max_iter
+
+        time = @elapsed for i in 1:max_iter
             # increment interation number used for printing current iteration number
             iter += 1
 
@@ -121,30 +133,28 @@ function opt_alg(f::Function, bounds; max_iter=1000)
 
             # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
             if isposdef(hess)
-                x = newton_method(grad, hess, x)
+                x, is_gradient_descent = newton_method(f, grad, hess, x)
             else
-                x = steepest_descent(grad, x)
+                x, is_gradient_descent = steepest_descent(f, grad, x)
             end
 
             # Finite termination criteria            
-            eps_1 = 10^-3
-            eps_2 = 10^-3
-            eps_3 = 10^-3
+            eps = 1e-3
 
             # calculate function value used in termination criteria
             function_value = f(x)
 
             current_term_criteria = []
             # termination criteria 1
-            if norm(grad) <= eps_1 * (1 + abs(function_value))
+            if norm(grad) <= eps * (1 + abs(function_value))
                 push!(current_term_criteria, "1")
             end
             # termination criteria 2
-            if f(x_prev) - function_value <= eps_2 * (1 + abs(function_value))
+            if f(x_prev) - function_value <= eps * (1 + abs(function_value))
                 push!(current_term_criteria, "2")
             end
             # termination criteria 3
-            if norm(x_prev - x) <= eps_3 * (1 + norm(x))
+            if norm(x_prev - x) <= eps * (1 + norm(x))
                 push!(current_term_criteria, "3")
             end
 
@@ -167,6 +177,8 @@ function opt_alg(f::Function, bounds; max_iter=1000)
             end
         end
 
+        time_log[sample_num] = time
+
         data = DataFrame(Samplepoint=remove_zeros(sample_num_list),
             Currentsample=remove_zeros(x_current_sample_list),
             Iteration=remove_zeros(x_current_iter),
@@ -185,18 +197,25 @@ function opt_alg(f::Function, bounds; max_iter=1000)
         end
     end
 
-    return x_min, f_min
+    return x_min, f_min, time_log
 end
 
-# Define the function to optimize
-f(x) = cost_function(problem_object, x, experimental_data)
+function run_opt_alg()
+    # Define the function to optimize
+    f(x) = cost_function(problem_object, x, experimental_data)
 
-# Define bounds
-bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
+    # Define bounds
+    bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
 
-# Find the minimum point and value among the samples
-min_point, min_val = opt_alg(f, bounds)
+    # Find the minimum point and value among the samples
+    min_point, min_val, time_log = opt_alg(f, bounds)
 
-# Print the results
-println("Minimum point: ", min_point)
-println("Minimum value: ", min_val)
+    # log time for each sample point
+    CSV.write("time_log.csv", DataFrame(time=time_log))
+
+    # Print the results
+    println("Minimum point: ", min_point)
+    println("Minimum value: ", min_val)
+end
+
+run_opt_alg()
