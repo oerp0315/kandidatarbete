@@ -8,35 +8,41 @@ using DelimitedFiles
 include("kinetik1.jl")
 
 function line_step_search(f::Function, x, dir; alpha=1.0)
-    is_gradient_descent = true
+    is_descent_direction::Bool = true
     for i in 1:50
         x_new = x + alpha * dir
         if f(x_new) < f(x)
             x = x_new
             break
         elseif i == 50
-            is_gradient_descent = false
+            is_descent_direction = false
         end
         alpha = alpha / 2
     end
 
-    return alpha, is_gradient_descent
+    return alpha, is_descent_direction
 end
 
 function newton_method(f::Function, grad, hess, x)
     dir = -hess \ grad
-    alpha, is_gradient_descent = line_step_search(f, x, dir)
-    x += alpha * dir
+    alpha, is_descent_direction = line_step_search(f, x, dir)
 
-    return x, is_gradient_descent
+    if is_descent_direction
+        x += alpha * dir
+    end
+
+    return x, is_descent_direction
 end
 
 function steepest_descent(f::Function, grad, x)
     dir = -grad / norm(grad)
-    alpha, is_gradient_descent = line_step_search(f, x, dir)
-    x += alpha * dir
+    alpha, is_descent_direction = line_step_search(f, x, dir)
 
-    return x, is_gradient_descent
+    if is_descent_direction
+        x += alpha * dir
+    end
+
+    return x, is_descent_direction
 end
 
 function latin_hypercube(n_samples, bounds; seed=123)
@@ -131,11 +137,20 @@ function opt_alg(f::Function, bounds; max_iter=1000)
             # To compare with the current x in termination criteria 
             x_prev = x
 
+            is_descent_direction::Bool = false
+
             # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
             if isposdef(hess)
-                x, is_gradient_descent = newton_method(f, grad, hess, x)
-            else
-                x, is_gradient_descent = steepest_descent(f, grad, x)
+                x, is_descent_direction = newton_method(f, grad, hess, x)
+            end
+
+            if !is_descent_direction
+                x, is_descent_direction = steepest_descent(f, grad, x)
+            end
+
+            if !is_descent_direction
+                println("Descent direction not found!")
+                break
             end
 
             # Finite termination criteria            
@@ -165,11 +180,7 @@ function opt_alg(f::Function, bounds; max_iter=1000)
             function_values[i] = f(x_prev)
             term_criteria[i] = current_term_criteria
 
-            if !is_gradient_descent
-                println("Decent direction not found. Moving on to the next sample point.")
-                term_reason[i] = "Decent direction not found"
-                break
-            elseif length(current_term_criteria) >= 2
+            if length(current_term_criteria) >= 2
                 term_reason[i] = "Two or more termination criteria was met"
                 break
             else
