@@ -1,4 +1,5 @@
 using ForwardDiff
+using FiniteDifferences
 using LinearAlgebra
 using Distributions
 using Random
@@ -96,13 +97,27 @@ function remove_zeros(v::AbstractVector)
     return filter(x -> x != 0, v)
 end
 
+function check_gradient(f::Function, x)
+    # gradient of first sample using ForwardDiff
+    grad_forwarddiff = ForwardDiff.gradient(f, x)
+
+    # gradient of first sample using FiniteDifferences
+    grad_finitdiff = grad(central_fdm(10, 1), f, x)[1]
+
+    if any(abs.(grad_forwarddiff - grad_finitdiff) .> 1e-6)
+        println("Gradient too unstable")
+        exit(1)
+    end
+end
+
 struct log_results
     sample_num_list::Vector{Int64}
-    x_current_sample_lists::Vector{Union{Float64,AbstractArray}}
+    x_current_sample_list::Vector{Union{Float64,AbstractArray}}
     x_current_iter::Vector{Union{Float64,AbstractArray}}
     function_values::Vector{Float64}
     term_criteria::Vector{Union{Float64,AbstractArray}}
     term_reason::Vector{Union{Float64,String}}
+    cond_num_list::AbstractVector
     time_log::Vector{Float64}
 end
 
@@ -111,9 +126,10 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
     sample_num_list::Vector{Int64} = zeros(max_iter)
     x_current_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
     x_current_iter::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
-    function_values::Vector{float64} = zeros(max_iter)
+    function_values::Vector{Float64} = zeros(max_iter)
     term_criteria::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
     term_reason::Vector{Union{Float64,String}} = zeros(max_iter)
+    cond_num_list::AbstractVector = zeros(max_iter)
     time_log::Vector{Float64} = zeros(1)
 
     x_current_samplepoint = x
@@ -128,6 +144,9 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         # Evaluate the function and its gradient and Hessian at the current point
         grad = ForwardDiff.gradient(f, x)
         hess = ForwardDiff.hessian(f, x)
+
+        # calculate condtion number
+        cond_num = cond(hess)
 
         # To compare with the current x in termination criteria 
         x_prev = x
@@ -174,6 +193,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         x_current_iter[i] = x_prev
         function_values[i] = f(x_prev)
         term_criteria[i] = current_term_criteria
+        cond_num_list[i] = cond_num
 
         if length(current_term_criteria) >= 2
             term_reason[i] = "Two or more termination criteria was met"
@@ -192,9 +212,10 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         function_values,
         term_criteria,
         term_reason,
+        cond_num_list,
         time_log)
 
-    return res, iter
+    return res, iter, x
 end
 
 function p_est(f::Function, bounds, n_samples)
@@ -214,6 +235,10 @@ function p_est(f::Function, bounds, n_samples)
 
     # Generate Latin hypercube samples in the search space
     x_samples = latin_hypercube(n_samples, bounds)
+
+    # if the gradient is not good enough the program will terminate
+    check_gradient(f, x_samples[1, :])
+
     x_min = x_samples[1, :]
     f_min = f(x_min)
 
@@ -225,12 +250,13 @@ function p_est(f::Function, bounds, n_samples)
         sample_num += 1
 
         # minimizes the cost function for the current start-guess
-        res, iter = opt(f::Function, x, sample_num, iter)
+        res, iter, x = opt(f::Function, x, sample_num, iter)
 
         data = DataFrame(Samplepoint=remove_zeros(res.sample_num_list),
             Currentsample=remove_zeros(res.x_current_sample_list),
             Iteration=remove_zeros(res.x_current_iter),
             Functionvalues=remove_zeros(res.function_values),
+            Condnum=remove_zeros(res.cond_num_list),
             Terminationcriteria=remove_zeros(res.term_criteria),
             Terminationreason=remove_zeros(res.term_reason))
 
