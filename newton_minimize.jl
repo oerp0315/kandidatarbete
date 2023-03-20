@@ -51,7 +51,7 @@ function latin_hypercube(n_samples, bounds; seed=123)
 
     n_vars = length(bounds)
 
-    if isfile("latin_hypercube.csv") & length(readdlm("latin_hypercube.csv", Float64)[1, :]) == n_vars
+    if isfile("latin_hypercube.csv") && length(readdlm("latin_hypercube.csv", Float64)[1, :]) == n_vars
         return readdlm("latin_hypercube.csv", Float64)
     else
         # Initialize the Latin square as an n-by-n array of zeros
