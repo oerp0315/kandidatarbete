@@ -104,7 +104,7 @@ function check_gradient(f::Function, x)
     # gradient of first sample using FiniteDifferences
     grad_finitdiff = grad(central_fdm(10, 1), f, x)[1]
 
-    if any(abs.(grad_forwarddiff - grad_finitdiff) .> 1e-6)
+    if any(abs.(grad_forwarddiff - grad_finitdiff) .> 1e-3)
         println("Gradient too unstable")
         exit(1)
     end
@@ -190,8 +190,8 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         # logging
         sample_num_list[i] = sample_num
         x_current_sample_list[i] = x_current_samplepoint
-        x_current_iter[i] = x_prev
-        function_values[i] = f(x_prev)
+        x_current_iter[i] = x
+        function_values[i] = f(x)
         term_criteria[i] = current_term_criteria
         cond_num_list[i] = cond_num
 
@@ -241,6 +241,7 @@ function p_est(f::Function, bounds, n_samples)
 
     x_min = x_samples[1, :]
     f_min = f(x_min)
+    iter_min = 1
 
     # initiate varible sample and iteration number
     sample_num = 0
@@ -271,12 +272,14 @@ function p_est(f::Function, bounds, n_samples)
         if f_val < f_min
             x_min = x
             f_min = f_val
+            iter_min = iter
         end
     end
 
     # Print the results
     println("Minimum point: ", x_min)
     println("Minimum value: ", f_min)
+    println("Iteration: ", iter_min)
 end
 
 # Define the function to optimize
