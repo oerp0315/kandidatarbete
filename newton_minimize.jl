@@ -51,7 +51,10 @@ function latin_hypercube(n_samples, bounds; seed=123)
 
     n_vars = length(bounds)
 
-    if isfile("latin_hypercube.csv") && length(readdlm("latin_hypercube.csv", Float64)[1, :]) == n_vars
+
+    if isfile("latin_hypercube.csv") && length(readdlm("latin_hypercube.csv", Float64)[1, :]) == n_vars &&
+       length(readdlm("latin_hypercube.csv", Float64)[:, 1]) == n_samples
+
         return readdlm("latin_hypercube.csv", Float64)
     else
         # Initialize the Latin square as an n-by-n array of zeros
@@ -115,24 +118,38 @@ struct log_results
     x_current_sample_list::Vector{Union{Float64,AbstractArray}}
     x_current_iter::Vector{Union{Float64,AbstractArray}}
     function_values::Vector{Float64}
-    term_criteria::Vector{Union{Float64,AbstractArray}}
+    term_criteria::Vector{Union{Float64,AbstractArray,String}}
     term_reason::Vector{Union{Float64,String}}
-    cond_num_list::AbstractVector
+    cond_num_list::AbstractVector{Union{Float64,String}}
     time_log::Vector{Float64}
 end
 
 function opt(f::Function, x, sample_num, iter; max_iter=1000)
     # initiate lists for logging results
-    sample_num_list::Vector{Int64} = zeros(max_iter)
-    x_current_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
-    x_current_iter::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
-    function_values::Vector{Float64} = zeros(max_iter)
-    term_criteria::Vector{Union{Float64,AbstractArray}} = zeros(max_iter)
-    term_reason::Vector{Union{Float64,String}} = zeros(max_iter)
-    cond_num_list::AbstractVector = zeros(max_iter)
+    sample_num_list::Vector{Int64} = zeros(max_iter + 1)
+    x_current_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(max_iter + 1)
+    x_current_iter::Vector{Union{Float64,AbstractArray}} = zeros(max_iter + 1)
+    function_values::Vector{Float64} = zeros(max_iter + 1)
+    term_criteria::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
+    term_reason::Vector{Union{Float64,String}} = zeros(max_iter + 1)
+    cond_num_list::AbstractVector{Union{Float64,String}} = zeros(max_iter + 1)
     time_log::Vector{Float64} = zeros(1)
 
     x_current_samplepoint = x
+
+    # calculate hessian etc. for first point
+    grad = ForwardDiff.gradient(f, x)
+    hess = ForwardDiff.hessian(f, x)
+    func_val = f(x)
+
+    # logging for first x
+    sample_num_list[1] = sample_num
+    x_current_sample_list[1] = x_current_samplepoint
+    x_current_iter[1] = x
+    function_values[1] = func_val
+    term_criteria[1] = "start point, no termination criteria"
+    cond_num_list[1] = "start point, no condition number"
+    term_reason[1] = "start point, no reason for temination"
 
     time = @elapsed for i in 1:max_iter
         # increment interation number used for printing current iteration number
@@ -188,31 +205,31 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         end
 
         # logging
-        sample_num_list[i] = sample_num
-        x_current_sample_list[i] = x_current_samplepoint
-        x_current_iter[i] = x
-        function_values[i] = f(x)
-        term_criteria[i] = current_term_criteria
-        cond_num_list[i] = cond_num
+        sample_num_list[i+1] = sample_num
+        x_current_sample_list[i+1] = x_current_samplepoint
+        x_current_iter[i+1] = x
+        function_values[i+1] = f(x)
+        term_criteria[i+1] = current_term_criteria
+        cond_num_list[i+1] = cond_num
 
         if length(current_term_criteria) >= 2
-            term_reason[i] = "Two or more termination criteria was met"
+            term_reason[i+1] = "Two or more termination criteria was met"
             break
         else
-            term_reason[i] = " "
+            term_reason[i+1] = " "
         end
     end
 
     # log time for each sample
     time_log[1] = time
 
-    res = log_results(sample_num_list,
-        x_current_sample_list,
-        x_current_iter,
-        function_values,
-        term_criteria,
-        term_reason,
-        cond_num_list,
+    res = log_results(remove_zeros(sample_num_list),
+        remove_zeros(x_current_sample_list),
+        remove_zeros(x_current_iter),
+        remove_zeros(function_values),
+        remove_zeros(term_criteria),
+        remove_zeros(term_reason),
+        remove_zeros(cond_num_list),
         time_log)
 
     return res, iter, x
@@ -253,13 +270,13 @@ function p_est(f::Function, bounds, n_samples)
         # minimizes the cost function for the current start-guess
         res, iter, x = opt(f::Function, x, sample_num, iter)
 
-        data = DataFrame(Samplepoint=remove_zeros(res.sample_num_list),
-            Currentsample=remove_zeros(res.x_current_sample_list),
-            Iteration=remove_zeros(res.x_current_iter),
-            Functionvalues=remove_zeros(res.function_values),
-            Condnum=remove_zeros(res.cond_num_list),
-            Terminationcriteria=remove_zeros(res.term_criteria),
-            Terminationreason=remove_zeros(res.term_reason))
+        data = DataFrame(Samplepoint=res.sample_num_list,
+            Currentsample=res.x_current_sample_list,
+            Iteration=res.x_current_iter,
+            Functionvalues=res.function_values,
+            Condnum=res.cond_num_list,
+            Terminationcriteria=res.term_criteria,
+            Terminationreason=res.term_reason)
 
         # modifying the content of myfile.csv using write method
         CSV.write("data.csv", data; append=true)
@@ -288,4 +305,4 @@ f(x) = cost_function(problem_object, x, experimental_data)
 # Define bounds
 bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
 
-p_est(f, bounds, 100)
+p_est(f, bounds, 500)
