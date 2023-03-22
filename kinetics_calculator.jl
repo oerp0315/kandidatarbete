@@ -18,7 +18,6 @@ function model_initialize1()
             D(c2) ~ θ[1] * c1 - θ[2] * c2 - θ[3] * c2 + θ[4] * c3,
             D(c3) ~ θ[3] * c2 - θ[4] * c3]  #Uttryck för systemet som diffrentialekvationer
 
-
       @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
       system = structural_simplify(system) #Skriver om systemet så det blir lösbart
 
@@ -54,11 +53,11 @@ function experimenter(problem_object, t_stop, c0, standard_deviation, θin)
       return solution[:, end] + rand(noise_distribution, 3) # Lägger till error
 end
 
-function cost_function(problem_object, θ, experimental_data::AbstractVector)
+function cost_function(problem_object, logθ, experimental_data::AbstractVector)
+      θ = exp.(logθ)
       error = 0
       for data in experimental_data
             sol = model_solver1(problem_object, θ, data.c0, data.t_final)
-            #sol = modellsimulator1(θ,data.c0,data.t_final)
 
             c_final_model = sol.u[end]
             error += sum((c_final_model - data.c_final) .^ 2)
