@@ -1,6 +1,5 @@
 using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
 
-println("Nu kör vi!!")
 
 # Objekt för experimentresultat
 struct experiment_results
@@ -8,7 +7,6 @@ struct experiment_results
       c_final::AbstractVector
       t_final::Number
 end
-
 
 # Funktion för att initiera ODE modell
 function model_initialize1()
@@ -95,21 +93,15 @@ function plot_experiment(experimental_data)
 end
 
 problem_object = model_initialize1()
-problem_object = model_initialize1()
 experimental_data = random_dataset_generator(problem_object, 2)
 
 
 
-plot()
-plot_exact_example(problem_object)
+#plot()
+#plot_exact_example(problem_object)
 #plot_experiment(experimental_data)
-
-for data in experimental_data
-      #plot!(data.t_final), data.c_final, seriestype=:scatter) #Plottar lösningen
-end
-
-display(plt)
+#display(plt)
 
 # printar kostnaden av exakta punkten. Borde ge 0.0
-println(cost_function(problem_object, [1, 0.5, 3, 10], experimental_data))
+# println(cost_function(problem_object, [1, 0.5, 3, 10], experimental_data))
 
