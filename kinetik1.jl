@@ -68,7 +68,7 @@ function cost_function(problem_object, θ, experimental_data::AbstractVector)
       return error
 end
 
-function random_dataset_generator(problem_object, number_of_experiments; standard_deviation=0.00, θin=[1 0.5 3 10])
+function random_dataset_generator(problem_object, number_of_experiments; standard_deviation=0.03, θin=[1 0.5 3 10])
       experimental_data = []
       for i = 1:number_of_experiments
             t_final_data = 2 * rand() #Genererar slumpmässiga sluttider
