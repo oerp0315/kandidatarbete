@@ -89,7 +89,6 @@ function plot_exact_example(problem_object)
       c0 = [0.5,0,0.5] #Intialkoncentrationer
       sol = model_solver1(problem_object, θin,c0,2) #Kör modellen
       plot!(sol) #Plottar lösningen
-      sol
 end
 
 function plot_experiment(experimental_data)
@@ -98,26 +97,21 @@ function plot_experiment(experimental_data)
       end
 end
 
-experimental_data = random_dataset_generator(problem_object, 2)
 problem_object = model_initialize1()
+experimental_data = random_dataset_generator(problem_object, 2)
+
 
 
 plot()
-plot_experiment(experimental_data)
+plot_exact_example(problem_object)
+#plot_experiment(experimental_data)
 
 for data in experimental_data
       #plot!(data.t_final), data.c_final, seriestype=:scatter) #Plottar lösningen
 end
 
+display(plt)
 
 # printar kostnaden av exakta punkten. Borde ge 0.0
 println(cost_function(problem_object, [1,0.5,3,10], experimental_data))
 
-
-
-
-# För att Plotta
-#θin = [1,0.5,3,10] # Gissar parametervärden
-#c0 = [0.5,0,0.5] #Intialkoncentrationer
-#sol = model_solver1(problem_object, θin,c0,2) #Kör modellen
-#plot(sol) #Plottar lösningen
