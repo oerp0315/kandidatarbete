@@ -6,7 +6,7 @@ using Random
 using CSV
 using DataFrames
 using DelimitedFiles
-include("kinetik1.jl")
+include("kinetics_calculator.jl")
 
 function line_step_search(f::Function, x, dir; alpha=1.0)
     is_descent_direction::Bool = true
