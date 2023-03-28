@@ -1,3 +1,4 @@
+using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
 "Object for experimental results"
 struct experiment_results
       c0::AbstractVector
