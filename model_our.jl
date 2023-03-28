@@ -95,3 +95,10 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector)
       end
       return error
 end
+<<<<<<< HEAD
+=======
+
+function interpolate(t, t_1, t_2, f_1, f_2)
+    return f_1 + (t-t_1) * (f_1 -f_2)/(t_1-t_2)
+end
+>>>>>>> 7bbca7435e3cebf7d13d40e379bc0cdfaf6f0e36

@@ -10,8 +10,8 @@ function model_solver(_problem_object, θin, c0, t_stop)
       return solution
 end
 
-problem_object = model_initialize()
-experimental_data = random_dataset_generator(problem_object, 2)
+
+
 
 
 
