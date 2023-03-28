@@ -299,11 +299,20 @@ function p_est(f::Function, bounds, n_samples)
     println("Iteration: ", iter_min)
 end
 
-# Define the function to optimize
-f2(x) = cost_function(problem_object, x, experimental_data)
-f(x) = f(parameter_redefiner(x, 3 , 100))
 
+
+# Define the function to optimize
+f(x) = cost_function(problem_object, x, experimental_data)
+
+function intermediate_cost_function(x_small, index_x_small, x_big)
+    _x_big = convert.(eltype(x_small), x_big)
+    _x_big[index_x_small] .= x_small
+    return cost_function(problem_object, _x_big, experimental_data)
+end
+
+# Omdefinera när det behövs
+cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, [1,2,4], x_hatt)
 # Define bounds
-bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
+bounds = [(0, 11), (0, 11), (0, 11)]
 
 p_est(f, bounds, 500)
