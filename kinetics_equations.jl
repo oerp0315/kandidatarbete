@@ -18,10 +18,10 @@ function model_initialize()
         D(Hxt4)~k_{t,Hxt4}*mHXT4 - k_{d,Hxt4}*Hxt4, 
         D(Hxt5)~k_{t,Hxt5}*mHXT5 - k_{d,Hxt5}*Hxt5, 
         D(Hxt6)~k_{t,Hxt6}*mHXT6 - k_{d,Hxt6}*Hxt6, 
-        D(ADP)~ k_{a,ADP}*ATP - k_{d,ADP}*ADP - k_{a,ATP}*ADP*Extracellular_glucose
-        D(Snf1)~ k_{t,Snf1}*mSNF1- k_{d,Snf1}*Snf1+ k_{i,Snf1}*Snf1*Cellular_glucose
-        D(Mig1)~ k_{t,Mig1}*mMIG1 - k_{d,Mig1}*Mig1 -  k_{i,Mig1}*Mig1*Snf1
-        D(Mig2)~k_{t,Mig2}*mMig2- k_{d,Mig2}*Mig2,
+        D(ADP)~ k_{a,ADP}*ATP - k_{d,ADP}*ADP - k_{a,ATP}*ADP*Extracellular_glucose,
+        D(Snf1)~ k_{t,Snf1}*mSNF1- k_{d,Snf1}*Snf1+ k_{i,Snf1}*Snf1*Cellular_glucose,
+        D(Mig1)~ k_{t,Mig1}*mMIG1 - k_{d,Mig1}*Mig1 -  k_{i,Mig1}*Mig1*Snf1,
+        D(Mig2)~k_{t,Mig2}*mMIG2- k_{d,Mig2}*Mig2,
         D(Cellular_glucose)~ V_{transport-Hxt1}*Extracellular_glucose/(K_{transport-Hxt1} + Extracellular_glucose) + V_{transport-Hxt2}*Extracellular_glucose/(K_{transport-Hxt2} + Extracellular_glucose) + V_{transport-Hxt3}*Extracellular_glucose/(K_{transport-Hxt3} + Extracellular_glucose) + V_{transport-Hxt4}*Extracellular_glucose/(K_{transport-Hxt4} + Extracellular_glucose) -k_{p,ATP}*Cellular_glucose, 
 
         Rgt1_active ~ Std1:Rgt1 + Mth1:Rgt1,
