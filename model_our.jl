@@ -3,16 +3,29 @@ using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
 # Skriv om
 "Object for experimental results"
 struct experiment_results
-      c_final:: AbstractMatrix
-      t_final:: AbstractVector
+      glucose_conc ::Number
+      hxt_types::AbstractVector
+      c:: AbstractMatrix
+      t:: AbstractVector
 end
+
+index_general = [1 1 2 2 3 3 4 4]
+index_mutant = [2 2]
+
 Data01_glucose=[[0.74 0.1 0.06 0.05 0.76	0.13	23.02	26.98]; [1.83 0.52 0.1	0.06	0.85	0.33	29.55	36.75]; [0.23 0.02 0.29	0.02	0.95	0.05	41.21	53.44]; [0.08 0.05 0.19	0.29	0.24	0.14	31.34	44.63];[0.05 0.19 0.15	1.1 0.32 0.18 28.44 25.82]; [0.09	0.03	0.06	0.07	0.27	0.09	12.34	16.08];[0.02 0.02 0.01	0.2 0.28 0.04 9.92 13.89]]
 Data02_glucose=[[0.07 0.02 0.06 0.05 0.52	0.13	23.02	26.98]; [3.92 1.05 0.09	0.09	0.78	0.71	21.19	24.59]; [9.86 8.15 0.18	0.18	0.67	0.57	19.69	20.69]; [19.08 15.12 0.32 0.32 1.78	1.46	16.35	17.33];[21.03 20.01 0.35 0.35	3.96	2.96	15.57	14.37]; [27.03 24.11 0.91 1.18 7.34	8.34	12.55	13.55];[29.03 31.05 1.03 1.08	11.16	9.16 10.37 8.12]]
-Data01_mutants=[[91.09 81.19 23.83 20.11]; [82.14 74.49 41.84 34.41]; [69.08 68.11 57.87 51.86];[59.57 64.89 76.11 65.38];[55.71 56.12 85.12 77.12]; [51.68 60.08 92.12 81.11]]
-timevaues_general=[0 10 20 30 40 60 120]
+Data01_mutant=[[91.09 81.19 ]; [82.14 74.49]; [69.08 68.11];[59.57 64.89];[55.71 56.12]; [51.68 60.08 ]]
+Data02_mutant=[[ 23.83 20.11]; [ 41.84 34.41]; [57.87 51.86];[76.11 65.38];[85.12 77.12]; [ 92.12 81.11]]
+
+timevalues_general=[0 10 20 30 40 60 120]
 timevalues_mutant=[0 10 27 35 60 120]
 
+experiment1 = experiment_results(0.1, index_general , Data01_glucose, timevalues_general)
+experiment2 = experiment_results(0.2, index_general, Data02_glucose, timevalues_general)
+experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
+experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
 
+experimental_data = [experiment1, experiment2,experiment3, experiment4]
 
 #=
 "Function to construct model"
@@ -80,25 +93,29 @@ function model_initialize()
       problem_object = ODEProblem(system, u0, tspan, p, jac=true)  #Definierar vad som ska beräknas
       return problem_object
 end
-=# 
+=#
+
 
 # Skriv om!!
 "Calculate difference between experiments and model"
 function cost_function(problem_object, logθ, experimental_data::AbstractVector)
       θ = exp.(logθ)
       error = 0
-      for data in experimental_data
-            sol = model_solver1(problem_object, θ, data.c0, data.t_final)
+      for experiment in experimental_data
+        # Fixa pre equilibrium!!!!!!!
+        sol = model_solver(problem_object, θ, 120) #All have end time 120
 
-            c_final_model = sol.u[end]
-            error += sum((c_final_model - data.c_final) .^ 2)
+        for (index_time, t) in enumerate(experiment.t)
+            # Beräkna modellens koncentrationer av HXT generna
+            c_model = ...
+            for (index_hxt, current_hxt_type) in enumerate(data.hxt_types)  #Kika
+                error += sum((c_model - data.c[index_time, index_hxt]) .^ 2)
+            end
+        end
       end
       return error
 end
-<<<<<<< HEAD
-=======
 
 function interpolate(t, t_1, t_2, f_1, f_2)
     return f_1 + (t-t_1) * (f_1 -f_2)/(t_1-t_2)
 end
->>>>>>> 7bbca7435e3cebf7d13d40e379bc0cdfaf6f0e36
