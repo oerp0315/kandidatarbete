@@ -1,3 +1,13 @@
+
+# Skriv om
+"Object for experimental results"
+struct experiment_results
+      c0::AbstractVector
+      c_final::AbstractVector
+      t_final::Number
+end
+
+"Function to construct model"
 function model_initialize()
     @parameters t Extracellular_glucose k_{t,Snf3} k_{t,Snf3} k_{a,Snf3} k_{i,Snf3g} k_{t,Std1} k_{d,Std1}  k_{a,Std1:Rgt1} k_{i,Std1:Rgt1} k_{t,Mth1} k_{d,Mth1} k_{a,Mth1:Rgt1} k_{i,Mth1:Rgt1}  V_{mSNF3} θ_{Mig1-Snf3} θ_{Mig2-Snf3} V_{mSTD1} θ_{Rgt1_active-Snf3} V_{mMTH1} θ_{Rgt1_active-MTH1} θ_{Mig1-MTH1} θ_{Mig2-MTH1} V_{mRGT1} k_{t,Hxt1} k_{t,Hxt2} k_{t,Hxt3} k_{t,Hxt4} k_{d,Hxt1} k_{d,Hxt2} k_{d,Hxt3} k_{d,Hxt4} k_{a,ADP} k_{d,ADP} k_{a,ATP} k_{t,Snf1} k_{d,Snf1} k_{i,Snf1} k_{t,Mig1} k_{d,Mig1} k_{i,Mig1} k_{t,Mig2} k_{d,Mig2} V_{transport-Hxt1} K_{transport-Hxt1} V_{transport-Hxt2} K_{transport-Hxt2} V_{transport-Hxt3} K_{transport-Hxt3} V_{transport-Hxt4} K_{transport-Hxt4} k_{p,ATP} k_{d,mHXT1} V_{mHXT1} T_{mHXT1} θ_{activation} θ_{Rgt1_active-HXT1} k_{d,mHXT2} V_{mHXT2} θ_{Rgt1_active-HXT2} θ_{Mig1-HXT2} θ_{Mig2-HXT2} k_{d,mHXT3} V_{mHXT3} θ_{Rgt1_active-HXT3} θ_{Mig1-HXT3} θ_{Mig2-HXT3} k_{d,mHXT4} V_{mHXT4} θ_{Rgt1_active-HXT4} θ_{Mig1-HXT4} θ_{Mig2-HXT4} k_{d,mMIG1} V_{mMIG1} θ_{Mig1-MIG1} θ_{Mig2-MIG1} k_{d,mMIG2} V_{mMIG2} θ_{Rgt1_active-MIG2} θ_{Mig1-MIG2} θ_{Mig2-MIG2} k_{d,mSNF1} V_{mSNF1}
     @variables  Snf3(t) Snf3g(t) Std1(t) Std1:Rgt1(t) Mth1(t) Mth1:Rgt1(t) Mth1:Rgt1(t)  Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t) ATP(t) ADP(t) mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
@@ -61,4 +71,18 @@ function model_initialize()
       tspan = (0.0, 10) #Tiden vi kör modellen under
       problem_object = ODEProblem(system, u0, tspan, p, jac=true)  #Definierar vad som ska beräknas
       return problem_object
+end
+
+# Skriv om!!
+"Calculate difference between experiments and model"
+function cost_function(problem_object, logθ, experimental_data::AbstractVector)
+      θ = exp.(logθ)
+      error = 0
+      for data in experimental_data
+            sol = model_solver1(problem_object, θ, data.c0, data.t_final)
+
+            c_final_model = sol.u[end]
+            error += sum((c_final_model - data.c_final) .^ 2)
+      end
+      return error
 end
