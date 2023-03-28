@@ -6,7 +6,8 @@ using Random
 using CSV
 using DataFrames
 using DelimitedFiles
-include("kinetics_calculator.jl")
+include("generall_kinetics.jl")
+include("model_easy.jl")
 
 function line_step_search(f::Function, x, dir; alpha=1.0)
     is_descent_direction::Bool = true
@@ -297,13 +298,24 @@ function p_est(f::Function, bounds, n_samples)
     println("Minimum point: ", x_min)
     println("Minimum value: ", f_min)
     println("Iteration: ", iter_min)
+
+    return x_min, f_min
 end
 
-# Define the function to optimize
-f2(x) = cost_function(problem_object, x, experimental_data)
-f(x) = f(parameter_redefiner(x, 3 , 100))
 
+
+# Define the function to optimize
+f(x) = cost_function(problem_object, x, experimental_data)
+
+function intermediate_cost_function(x_small, index_x_small, x_big)
+    _x_big = convert.(eltype(x_small), x_big)
+    _x_big[index_x_small] .= x_small
+    return cost_function(problem_object, _x_big, experimental_data)
+end
+
+# Omdefinera när det behövs
+cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, [1, 2, 4], x_hatt)
 # Define bounds
-bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
+bounds = [(0, 11), (0, 11), (0, 11)]
 
 p_est(f, bounds, 500)

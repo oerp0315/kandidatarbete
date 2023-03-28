@@ -1,3 +1,34 @@
+using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
+
+# Skriv om
+"Object for experimental results"
+struct experiment_results
+      glucose_conc ::Number
+      hxt_types::AbstractVector
+      c:: AbstractMatrix
+      t:: AbstractVector
+end
+
+index_general = [1 1 2 2 3 3 4 4]
+index_mutant = [2 2]
+
+Data01_glucose=[[0.74 0.1 0.06 0.05 0.76	0.13	23.02	26.98]; [1.83 0.52 0.1	0.06	0.85	0.33	29.55	36.75]; [0.23 0.02 0.29	0.02	0.95	0.05	41.21	53.44]; [0.08 0.05 0.19	0.29	0.24	0.14	31.34	44.63];[0.05 0.19 0.15	1.1 0.32 0.18 28.44 25.82]; [0.09	0.03	0.06	0.07	0.27	0.09	12.34	16.08];[0.02 0.02 0.01	0.2 0.28 0.04 9.92 13.89]]
+Data02_glucose=[[0.07 0.02 0.06 0.05 0.52	0.13	23.02	26.98]; [3.92 1.05 0.09	0.09	0.78	0.71	21.19	24.59]; [9.86 8.15 0.18	0.18	0.67	0.57	19.69	20.69]; [19.08 15.12 0.32 0.32 1.78	1.46	16.35	17.33];[21.03 20.01 0.35 0.35	3.96	2.96	15.57	14.37]; [27.03 24.11 0.91 1.18 7.34	8.34	12.55	13.55];[29.03 31.05 1.03 1.08	11.16	9.16 10.37 8.12]]
+Data01_mutant=[[91.09 81.19 ]; [82.14 74.49]; [69.08 68.11];[59.57 64.89];[55.71 56.12]; [51.68 60.08 ]]
+Data02_mutant=[[ 23.83 20.11]; [ 41.84 34.41]; [57.87 51.86];[76.11 65.38];[85.12 77.12]; [ 92.12 81.11]]
+
+timevalues_general=[0 10 20 30 40 60 120]
+timevalues_mutant=[0 10 27 35 60 120]
+
+experiment1 = experiment_results(0.1, index_general , Data01_glucose, timevalues_general)
+experiment2 = experiment_results(0.2, index_general, Data02_glucose, timevalues_general)
+experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
+experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
+
+experimental_data = [experiment1, experiment2,experiment3, experiment4]
+
+#=
+"Function to construct model"
 function model_initialize()
     @parameters t Extracellular_glucose k_{t,Snf3} k_{t,Snf3} k_{a,Snf3} k_{i,Snf3g} k_{t,Std1} k_{d,Std1}  k_{a,Std1:Rgt1} k_{i,Std1:Rgt1} k_{t,Mth1} k_{d,Mth1} k_{a,Mth1:Rgt1} k_{i,Mth1:Rgt1}  V_{mSNF3} θ_{Mig1-Snf3} θ_{Mig2-Snf3} V_{mSTD1} θ_{Rgt1_active-Snf3} V_{mMTH1} θ_{Rgt1_active-MTH1} θ_{Mig1-MTH1} θ_{Mig2-MTH1} V_{mRGT1} k_{t,Hxt1} k_{t,Hxt2} k_{t,Hxt3} k_{t,Hxt4} k_{d,Hxt1} k_{d,Hxt2} k_{d,Hxt3} k_{d,Hxt4} k_{a,ADP} k_{d,ADP} k_{a,ATP} k_{t,Snf1} k_{d,Snf1} k_{i,Snf1} k_{t,Mig1} k_{d,Mig1} k_{i,Mig1} k_{t,Mig2} k_{d,Mig2} V_{transport-Hxt1} K_{transport-Hxt1} V_{transport-Hxt2} K_{transport-Hxt2} V_{transport-Hxt3} K_{transport-Hxt3} V_{transport-Hxt4} K_{transport-Hxt4} k_{p,ATP} k_{d,mHXT1} V_{mHXT1} T_{mHXT1} θ_{activation} θ_{Rgt1_active-HXT1} k_{d,mHXT2} V_{mHXT2} θ_{Rgt1_active-HXT2} θ_{Mig1-HXT2} θ_{Mig2-HXT2} k_{d,mHXT3} V_{mHXT3} θ_{Rgt1_active-HXT3} θ_{Mig1-HXT3} θ_{Mig2-HXT3} k_{d,mHXT4} V_{mHXT4} θ_{Rgt1_active-HXT4} θ_{Mig1-HXT4} θ_{Mig2-HXT4} k_{d,mMIG1} V_{mMIG1} θ_{Mig1-MIG1} θ_{Mig2-MIG1} k_{d,mMIG2} V_{mMIG2} θ_{Rgt1_active-MIG2} θ_{Mig1-MIG2} θ_{Mig2-MIG2} k_{d,mSNF1} V_{mSNF1}
     @variables  Snf3(t) Snf3g(t) Std1(t) Std1:Rgt1(t) Mth1(t) Mth1:Rgt1(t) Mth1:Rgt1(t)  Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t) ATP(t) ADP(t) mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
@@ -21,8 +52,8 @@ function model_initialize()
         D(ADP)~ k_{a,ADP}*ATP - k_{d,ADP}*ADP - k_{a,ATP}*ADP*Extracellular_glucose,
         D(Snf1)~ k_{t,Snf1}*mSNF1- k_{d,Snf1}*Snf1+ k_{i,Snf1}*Snf1*Cellular_glucose,
         D(Mig1)~ k_{t,Mig1}*mMIG1 - k_{d,Mig1}*Mig1 -  k_{i,Mig1}*Mig1*Snf1,
-        D(Mig2)~k_{t,Mig2}*mMIG2- k_{d,Mig2}*Mig2,
-        D(Cellular_glucose)~ V_{transport-Hxt1}*Extracellular_glucose/(K_{transport-Hxt1} + Extracellular_glucose) + V_{transport-Hxt2}*Extracellular_glucose/(K_{transport-Hxt2} + Extracellular_glucose) + V_{transport-Hxt3}*Extracellular_glucose/(K_{transport-Hxt3} + Extracellular_glucose) + V_{transport-Hxt4}*Extracellular_glucose/(K_{transport-Hxt4} + Extracellular_glucose) -k_{p,ATP}*Cellular_glucose, 
+        D(Mig2)~k_{t,Mig2}*mMIG2 - k_{d,Mig2}*Mig2,
+        D(Cellular_glucose)~ V_{transport-Hxt1}*Extracellular_glucose/(K_{transport-Hxt1} + Extracellular_glucose) + V_{transport-Hxt2}*Extracellular_glucose/(K_{transport-Hxt2} + Extracellular_glucose) + V_{transport-Hxt3}*Extracellular_glucose/(K_{transport-Hxt3} + Extracellular_glucose) + V_{transport-Hxt4}*Extracellular_glucose/(K_{transport-Hxt4} + Extracellular_glucose) - k_{p,ATP}*Cellular_glucose, 
 
         Rgt1_active ~ Std1:Rgt1 + Mth1:Rgt1,
 
@@ -30,10 +61,10 @@ function model_initialize()
         D(mSNF3) ~ -k_{d,mSNF3}*mSNF3 + V_{mSNF3}/(1+θ_{Mig1-Snf3}*Mig1)/(1+θ_{Mig2-Snf3}*Mig2),
         D(mSTD1) ~ -k_{d,mSTD1}*mSTD1 + V_{mSTD1}/(1+θ_{Rgt1_active-Snf3}*Rgt1_active),
         D(mMTH1) ~ -k_{d,mMTH1}*mMTH1 + V_{mMTH1}/(1+θ_{Rgt1_active-MTH1}*Rgt1_active)/(1+θ_{Mig1-MTH1}*Mig1)/(1+θ_{Mig2-MTH1}*Mig2),
-        D(mRGT1) ~ -k_{d,mRGT1}*mRGT1 +V_{mRGT1},
+        D(mRGT1) ~ - k_{d,mRGT1}*mRGT1 + V_{mRGT1},
 
-        D(mHXT1) ~ -k_{d,mHXT1}*mHXT1 + V_{mHXT1}*(T_{mHXT1}+((1-T_{mHXT1})*θ_{activation}*Rgt1*Glucosesignal)/(1+θ_{activation}*Rgt1*Glucosesignal))/(1+θ_{Rgt1_active-HXT1}*Rgt1_active) #läs på om glucosesignal - för ska ej vara med, kolla på systemet och se vilka antagande som kan göras, hitta därefter parameter som kan ersätta
-        D(mHXT2) ~ -k_{d,mHXT2}*mHXT2 + V_{mHXT2}/(1+θ_{Rgt1_active-HXT2}*Rgt1_active)/(1+θ_{Mig1-HXT2}*Mig1)/(1+θ_{Mig2-HXT2}*Mig2),
+        D(mHXT1) ~ -k_{d,mHXT1}*mHXT1 + V_{mHXT1}*(T_{mHXT1}+((1-T_{mHXT1})*θ_{activation}*Rgt1*Glucosesignal)/(1+θ_{activation}*Rgt1*Glucosesignal))/(1+θ_{Rgt1_active-HXT1}*Rgt1_active), #läs på om glucosesignal - för ska ej vara med, kolla på systemet och se vilka antagande som kan göras, hitta därefter parameter som kan ersätta
+        D(mHXT2) ~ - k_{d,mHXT2}*mHXT2 + V_{mHXT2}/(1+θ_{Rgt1_active-HXT2}*Rgt1_active)/(1+θ_{Mig1-HXT2}*Mig1)/(1+θ_{Mig2-HXT2}*Mig2),
         D(mHXT3) ~ -k_{d,mHXT3}*mHXT3 + V_{mHXT3}/(1+θ_{Rgt1_active-HXT3}*Rgt1_active)/(1+θ_{Mig1-HXT3}*Mig1)/(1+θ_{Mig2-HXT3}*Mig2),
         D(mHXT4) ~ -k_{d,mHXT4}*mHXT4 + V_{mHXT4}/(1+θ_{Rgt1_active-HXT4}*Rgt1_active)/(1+θ_{Mig1-HXT4}*Mig1)/(1+θ_{Mig2-HXT4}*Mig2),
         D(mHXT5) ~ -k_{d,mHXT5}*mHXT5 + V_{mHXT5}/(1+θ_{Rgt1_active-HXT5}*Rgt1_active)/(1+θ_{Mig1-HXT5}*Mig1)/(1+θ_{Mig2-HXT5}*Mig2),
@@ -61,4 +92,30 @@ function model_initialize()
       tspan = (0.0, 10) #Tiden vi kör modellen under
       problem_object = ODEProblem(system, u0, tspan, p, jac=true)  #Definierar vad som ska beräknas
       return problem_object
+end
+=#
+
+
+# Skriv om!!
+"Calculate difference between experiments and model"
+function cost_function(problem_object, logθ, experimental_data::AbstractVector)
+      θ = exp.(logθ)
+      error = 0
+      for experiment in experimental_data
+        # Fixa pre equilibrium!!!!!!!
+        sol = model_solver(problem_object, θ, 120) #All have end time 120
+
+        for (index_time, t) in enumerate(experiment.t)
+            # Beräkna modellens koncentrationer av HXT generna
+            c_model = ...
+            for (index_hxt, current_hxt_type) in enumerate(data.hxt_types)  #Kika
+                error += sum((c_model - data.c[index_time, index_hxt]) .^ 2)
+            end
+        end
+      end
+      return error
+end
+
+function interpolate(t, t_1, t_2, f_1, f_2)
+    return f_1 + (t-t_1) * (f_1 -f_2)/(t_1-t_2)
 end
