@@ -42,7 +42,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector)
       θ = exp.(logθ)
       error = 0
       for data in experimental_data
-            sol = model_solver1(problem_object, θ, data.c0, data.t_final)
+            sol = model_solver(problem_object, θ, data.c0, data.t_final)
             c_final_model = sol.u[end]
             error += sum((c_final_model - data.c_final) .^ 2)
       end
