@@ -298,6 +298,8 @@ function p_est(f::Function, bounds, n_samples)
     println("Minimum point: ", x_min)
     println("Minimum value: ", f_min)
     println("Iteration: ", iter_min)
+
+    return x_min, f_min
 end
 
 
@@ -312,7 +314,7 @@ function intermediate_cost_function(x_small, index_x_small, x_big)
 end
 
 # Omdefinera när det behövs
-cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, [1,2,4], x_hatt)
+cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, [1, 2, 4], x_hatt)
 # Define bounds
 bounds = [(0, 11), (0, 11), (0, 11)]
 
