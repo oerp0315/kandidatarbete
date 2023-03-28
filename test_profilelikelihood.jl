@@ -1,10 +1,5 @@
 using Optim
-
-# Define the likelihood function for the model
-function likelihood(params, data)
-    # Insert code to compute the likelihood function
-    return value
-end
+include("kinetics_calculator.jl")
 
 # Define the function to perform profile likelihood analysis for one parameter
 function profile_likelihood(params, data, param_index, num_points, threshold)
@@ -40,18 +35,15 @@ function profile_likelihood(params, data, param_index, num_points, threshold)
     return mle, ci_lower, ci_upper, profile_likelihood_values
 end
 
-# Define the data for the model
-data = ...
-
 # Define the initial parameter values
-params = ...
+params = [0.9 0.53 3.05 9.93]
 
 # Perform profile likelihood analysis for each parameter
 num_points = 100
 threshold = 1.92 # For 95% confidence interval
 results = []
 for i in 1:4
-    mle, ci_lower, ci_upper, profile_likelihood_values = profile_likelihood(params, data, i, num_points, threshold)
+    mle, ci_lower, ci_upper, profile_likelihood_values = profile_likelihood(params, experimental_data, i, num_points, threshold)
     push!(results, (mle, ci_lower, ci_upper, profile_likelihood_values))
 end
 
