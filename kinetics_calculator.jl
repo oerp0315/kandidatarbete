@@ -53,6 +53,15 @@ function experimenter(problem_object, t_stop, c0, standard_deviation, θin)
       return solution[:, end] + rand(noise_distribution, 3) # Lägger till error
 end
 
+"Adds a element at position fix_value and push all values after"
+function parameter_redefiner(_logθ::AbstractVector, element_to_fix, fix_value)
+      logθ = zeros(length(_logθ)+1)
+      logθ[1,element_to_fix-1] = _logθ[1,element_to_fix-1]
+      logθ[element_to_fix] = fix_value
+      logθ[element_to_fix+1,end] = _logθ[element_to_fix,end]
+      return logθ
+end
+
 function cost_function(problem_object, logθ, experimental_data::AbstractVector)
       θ = exp.(logθ)
       error = 0
