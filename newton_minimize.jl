@@ -300,7 +300,8 @@ function p_est(f::Function, bounds, n_samples)
 end
 
 # Define the function to optimize
-f(x) = cost_function(problem_object, x, experimental_data)
+f2(x) = cost_function(problem_object, x, experimental_data)
+f(x) = f(parameter_redefiner(x, 3 , 100))
 
 # Define bounds
 bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
