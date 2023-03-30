@@ -6,7 +6,7 @@ function step_size(param_last, param_index; threshold=0.025, q=0.1)
     step_size = zeros(length(param_last))
     step_size[param_index] = 10
     for i in 1:50
-        if abs(f(param_last + step_size) - f(param_last) - q*threshold) < 1e-3
+        if abs(f(param_last + step_size) - f(param_last) - q * threshold) < 1e-3
             break
         else
             step_size[param_index] /= 2
@@ -45,14 +45,15 @@ function profile_likelihood(params, data, param_index, bounds, num_points, thres
     x_samples = readdlm("latin_hypercube.csv", Float64)
     new_x_samples = hcat(bounds[:, 1:param_index-1], A[:, param_index+1:end])
 
-    # Omdefinera när det behövs
-    cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, params)
+    for i in 1:100
+        # Omdefinera när det behövs
+        cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, params)
 
-    for
+        params_current = step_size(params, param_index)
 
-
-    # Find the maximum likelihood estimate for the parameter of interest
-    x_min, f_min = p_est(cost_function_profilelikelihood, new_bounds, 100)
+        # Find the maximum likelihood estimate for the parameter of interest
+        x_min, f_min = p_est(cost_function_profilelikelihood, new_bounds, 100)
+    end
 
     # Find the maximum likelihood estimates for the other three parameters at each value of the parameter of interest
     profile_likelihood_values = []
