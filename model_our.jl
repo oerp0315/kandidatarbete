@@ -52,8 +52,8 @@ experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
 
 "Function to construct model"
 function model_initialize()
-    @parameters t Extracellular_glucose 
-    @variables  Snf3(t) Snf3g(t) Std1(t) Std1:Rgt1(t) Mth1(t) Mth1:Rgt1(t) Mth1:Rgt1(t)  Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t) ATP(t) ADP(t) mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
+    @parameters t Extracellular_glucose k_{a,Snf3}  k_{i,Snf3g}  k_{i,Std1} k_{i,Std1}  k_{i,Snf1}  k_{i,Mig1} k_{p,ATP}   k_{d,mHXT1}  T_{mHXT1}  θ_{activation}  k_{d,mHXT2}  k_{d,mHXT3}   k_{d,mHXT4}   k_{d,mMIG1} k_{d,mMIG2} k_{d,mSNF1}
+    @variables  Snf3(t) Snf3g(t) Std1(t) Std1:Rgt1(t) Mth1(t) Mth1:Rgt1(t) Mth1:Rgt1(t)  Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t)  mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
     D = Differential(t)
 
     #gener 
@@ -70,9 +70,6 @@ function model_initialize()
         D(Hxt2)~k_{t,Hxt2}*mHXT2 - k_{d,Hxt2}*Hxt2, 
         D(Hxt3)~k_{t,Hxt3}*mHXT3 - k_{d,Hxt3}*Hxt3,
         D(Hxt4)~k_{t,Hxt4}*mHXT4 - k_{d,Hxt4}*Hxt4, 
-        D(Hxt5)~k_{t,Hxt5}*mHXT5 - k_{d,Hxt5}*Hxt5, 
-        D(Hxt6)~k_{t,Hxt6}*mHXT6 - k_{d,Hxt6}*Hxt6, 
-        D(ADP)~ k_{a,ADP}*ATP - k_{d,ADP}*ADP - k_{a,ATP}*ADP*Extracellular_glucose, #ATP saknas
         D(Snf1)~ k_{t,Snf1}*mSNF1- k_{d,Snf1}*Snf1+ k_{i,Snf1}*Snf1*Cellular_glucose,
         D(Mig1)~ k_{t,Mig1}*mMIG1 - k_{d,Mig1}*Mig1 -  k_{i,Mig1}*Mig1*Snf1,
         D(Mig2)~k_{t,Mig2}*mMIG2 - k_{d,Mig2}*Mig2,
@@ -85,12 +82,10 @@ function model_initialize()
         D(mMTH1) ~ -k_{d,mMTH1}*mMTH1 + V_{mMTH1}/(1+θ_{Rgt1_active-MTH1}*Rgt1_active)/(1+θ_{Mig1-MTH1}*Mig1)/(1+θ_{Mig2-MTH1}*Mig2),
         D(mRGT1) ~ - k_{d,mRGT1}*mRGT1 + V_{mRGT1},
 
-        D(mHXT1) ~ -k_{d,mHXT1}*mHXT1 + V_{mHXT1}*(T_{mHXT1}+((1-T_{mHXT1})*θ_{activation}*Rgt1*Glucosesignal)/(1+θ_{activation}*Rgt1*Glucosesignal))/(1+θ_{Rgt1_active-HXT1}*Rgt1_active), #läs på om glucosesignal - för ska ej vara med, kolla på systemet och se vilka antagande som kan göras, hitta därefter parameter som kan ersätta
-        D(mHXT2) ~ - k_{d,mHXT2}*mHXT2 + V_{mHXT2}/(1+θ_{Rgt1_active-HXT2}*Rgt1_active)/(1+θ_{Mig1-HXT2}*Mig1)/(1+θ_{Mig2-HXT2}*Mig2),
+        D(mHXT1) ~ -k_{d,mHXT1}*mHXT1 + V_{mHXT1}*(T_{mHXT1}+((1-T_{mHXT1})*θ_{activation}*Rgt1)/(1+θ_{activation}*Rgt1))/(1+θ_{Rgt1_active-HXT1}*Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
+        D(mHXT2) ~ - k_{d,mHXT2}*mHXT2+ V_{mHXT2}/(1+θ_{Rgt1_active-HXT2}*Rgt1_active)/(1+θ_{Mig1-HXT2}*Mig1)/(1+θ_{Mig2-HXT2}*Mig2),
         D(mHXT3) ~ -k_{d,mHXT3}*mHXT3 + V_{mHXT3}/(1+θ_{Rgt1_active-HXT3}*Rgt1_active)/(1+θ_{Mig1-HXT3}*Mig1)/(1+θ_{Mig2-HXT3}*Mig2),
         D(mHXT4) ~ -k_{d,mHXT4}*mHXT4 + V_{mHXT4}/(1+θ_{Rgt1_active-HXT4}*Rgt1_active)/(1+θ_{Mig1-HXT4}*Mig1)/(1+θ_{Mig2-HXT4}*Mig2),
-        D(mHXT5) ~ -k_{d,mHXT5}*mHXT5 + V_{mHXT5}/(1+θ_{Rgt1_active-HXT5}*Rgt1_active)/(1+θ_{Mig1-HXT5}*Mig1)/(1+θ_{Mig2-HXT5}*Mig2),
-        D(mHXT6) ~ -k_{d,mHXT6}*mHXT6 + V_{mHXT3}/(1+θ_{Rgt1_active-HXT6}*Rgt1_active)/(1+θ_{Mig1-HXT6}*Mig1)/(1+θ_{Mig2-HXT6}*Mig2),
         D(mMIG1) ~ -k_{d,mMIG1}*mMIG1 + V_{mMIG1}/(1+θ_{Mig1-MIG1}*Mig1)/(1+θ_{Mig2-MIG1}*Mig2),
         D(mMIG2) ~ -k_{d,mMIG2}*mMIG2 + V_{mMIG2}/(1+θ_{Rgt1_active-MIG2}*Rgt1_active)/(1+θ_{Mig1-MIG2}*Mig1)/(1+θ_{Mig2-MIG2}*Mig2),
         D(mSNF1) ~ -k_{d,mSNF1}*mSNF1 + V_{mSNF1}]
@@ -100,49 +95,40 @@ function model_initialize()
 
     k_{t,Snf3}= 0.010 #Egentilgen från RGT2!!
     k_{d,Snf3}= 0.231 #Egentilgen från RGT2!!
-    k_{a,Snf3}= AAAA
-    k_{i,Snf3g}= AAAA
     k_{t,Std1}= 42.8
     k_{d,Std1}= 0.087
-    k_{i,Std1}= AAAA
     k_{a,Std1:Rgt1}= #Kommer ändras AAAA
     k_{i,Std1:Rgt1}= #Kommer ändras
     k_{t,Mth1}= 6.000
     k_{d,Mth1}= 0.025
-    k_{i,Std1}= AAAA
     k_{a,Mth1:Rgt1}= #Kommer ändras AAAA
     k_{i,Mth1:Rgt1}= #Kommer ändras
     k_{t,Rgt1}= 19.000
     k_{d,Rgt1}=0.050
 
-    k_{t,Hxt1}=
-    k_{t,Hxt2}=
-    k_{t,Hxt3}=
-    k_{t,Hxt4}=
-    k_{d,Hxt1}=
-    k_{d,Hxt2}=
-    k_{d,Hxt3}=
-    k_{d,Hxt4}=
-    k_{a,ADP}=
-    k_{d,ADP}=
-    k_{a,ATP}=
-    k_{t,Snf1}=
-    k_{d,Snf1}=
-    k_{i,Snf1}=
-    k_{t,Mig1}=
-    k_{d,Mig1}=
-    k_{i,Mig1}=
-    k_{t,Mig2}=
-    k_{d,Mig2}=
-    V_{transport-Hxt1}=
-    K_{transport-Hxt1}=
-    V_{transport-Hxt2}=
-    K_{transport-Hxt2}=
-    V_{transport-Hxt3}=
-    K_{transport-Hxt3}=
-    V_{transport-Hxt4}=
-    K_{transport-Hxt4}=
-    k_{p,ATP}=
+    k_{t,Hxt1}= 1.480
+    k_{t,Hxt2}= 4.220
+    k_{t,Hxt3}= 4.230
+    k_{t,Hxt4}= 1.530
+    k_{d,Hxt1}= 0.010
+    k_{d,Hxt2}= 0.010
+    k_{d,Hxt3}= 0.010
+    k_{d,Hxt4}= 0.010
+    k_{t,Snf1}= 0.160
+    k_{d,Snf1}= 0.020 
+    k_{t,Mig1}= 62.000
+    k_{d,Mig1}= 0.020
+    k_{t,Mig2}= 6.000
+    k_{d,Mig2}= 0.046
+    V_{transport-Hxt1}= 4.14*10^20
+    K_{transport-Hxt1}= 5.40*10^22
+    V_{transport-Hxt2}= 5.82*10^19
+    K_{transport-Hxt2}= 9.00*10^20
+    V_{transport-Hxt3}= 2.16*10^20
+    K_{transport-Hxt3}= 3.30*10^22
+    V_{transport-Hxt4}= 9.60*10^19
+    K_{transport-Hxt4}= 5.58*10^21
+
 
 
     V_{mSNF3}= 50
@@ -156,37 +142,28 @@ function model_initialize()
     θ_{Mig2-MTH1}= 0.001
     V_{mRGT1}= 1.000
 
-    k_{d,mHXT1}=
-    V_{mHXT1}=
-    T_{mHXT1}= AAAA
-    θ_{activation}= AAAA
-    θ_{Rgt1_active-HXT1}=
-    k_{d,mHXT2}=
-    V_{mHXT2}=
-    θ_{Rgt1_active-HXT2}=
-    θ_{Mig1-HXT2}=
-    θ_{Mig2-HXT2}=
-    k_{d,mHXT3}=
-    V_{mHXT3}=
-    θ_{Rgt1_active-HXT3}=
-    θ_{Mig1-HXT3}=
-    θ_{Mig2-HXT3}=
-    k_{d,mHXT4}=
-    V_{mHXT4}=
-    θ_{Rgt1_active-HXT4}=
-    θ_{Mig1-HXT4}=
-    θ_{Mig2-HXT4}=
-    k_{d,mMIG1}=
-    V_{mMIG1}=
-    θ_{Mig1-MIG1}=
-    θ_{Mig2-MIG1}=
-    k_{d,mMIG2}=
-    V_{mMIG2}=
-    θ_{Rgt1_active-MIG2}=
-    θ_{Mig1-MIG2}=
-    θ_{Mig2-MIG2}=
-    k_{d,mSNF1}=
-    V_{mSNF1}=
+    V_{mHXT1}= 2.56
+    θ_{Rgt1_active-HXT1}=5.00*10^-001
+    V_{mHXT2}= 1.430
+    θ_{Rgt1_active-HXT2}= 0.450
+    θ_{Mig1-HXT2}= 0.110
+    θ_{Mig2-HXT2}= 0.010
+    V_{mHXT3}= 2.350
+    θ_{Rgt1_active-HXT3}= 0.240
+    θ_{Mig1-HXT3}= 0.020
+    θ_{Mig2-HXT3}= 0.001
+    V_{mHXT4}= 34.200
+    θ_{Rgt1_active-HXT4}= 0.026
+    θ_{Mig1-HXT4}= 0.430
+    θ_{Mig2-HXT4}= 0.080
+    V_{mMIG1}= 0.020
+    θ_{Mig1-MIG1}= 0.020
+    θ_{Mig2-MIG1}= 0.000 #?????
+    V_{mMIG2}= 0.230
+    θ_{Rgt1_active-MIG2}= 0.100
+    θ_{Mig1-MIG2}= 0.001
+    θ_{Mig2-MIG2}= 0.010
+    V_{mSNF1}= 2.900
 
     # Intialvärden som kommer skrivas över
     c0 = [0, 0, 0]
@@ -221,7 +198,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector)
         for (index_time, t) in enumerate(experiment.t)
             # Beräkna modellens koncentrationer av HXT generna
             interpolate_point = findfirst(isone,sol.t .> t)
-            c_model = interpolate(t,sol.t(interpolate_point),sol.t(interpolate_point+1),sol.u(interpolate_point),sol.u(interpolate_point+1) )
+            c_model = interpolate(t,sol.t(interpolate_point),sol.t(interpolate_point-1),sol.u(interpolate_point),sol.u(interpolate_point-1) )
 
             for (index_hxt, current_hxt_type) in enumerate(data.hxt_types)  #Kika
                error += sum((c_model - data.c[index_time, index_hxt]) .^ 2) #Hitta koncentrationen i c_model som motsvarar rätt HXT-gen
