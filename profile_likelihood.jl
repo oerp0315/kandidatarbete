@@ -15,7 +15,8 @@ function new_point(param_last, param_index, sign; threshold=0.025, q=0.1)
         step_size[param_index] /= 2
     end
 
-    return param_last .+ sign .* step_size, stop_flag
+    new_point = param_last .+ sign .* step_size
+    return new_point, stop_flag
 end
 
 function pl_costfunction_calc(x_hat, fix_index, fix_value)
@@ -49,10 +50,13 @@ function profile_likelihood(params, data, param_index, bounds, num_points, thres
 
     stop_flag = false
     sign = -1
+    fix_param_list = zeros(num_points)
+    x_list = zeros(num_points) #define union typ
+    costfunc_value_list = zeros(num_points)
 
     i = 0
 
-    while i <= 100
+    while i <= num_points
         i += 1
 
         if stop_flag == false
@@ -72,10 +76,18 @@ function profile_likelihood(params, data, param_index, bounds, num_points, thres
         # Find the maximum likelihood estimate for the parameter of interest
         x_min, f_min = p_est(cost_function_profilelikelihood, new_bounds, 100)
 
-        # LOGGGGGAAAAA!!!!!!!!!!!!
+        if sign == -1
+            fix_param_list[Int(num_points / 2)+1-i] = params_current[param_index]
+            x_list[Int(num_points / 2)+1-i] = params_current
+            costfunc_value_list[Int(num_points / 2)+1-i] = cost_function_profilelikelihood(params_current)
+        else
+            fix_param_list[Int(num_points / 2)+i] = params_current[param_index]
+            x_list[Int(num_points / 2)+i] = params_current
+            costfunc_value_list[Int(num_points / 2)+i] = cost_function_profilelikelihood(params_current)
+        end
     end
 
-    # Return the results
+    # sätta in data i struct, ta bort nollor samtidigt
     return #nått kul
 end
 
