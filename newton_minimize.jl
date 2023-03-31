@@ -125,7 +125,7 @@ struct log_results
     time_log::Vector{Float64}
 end
 
-function opt(f::Function, x, sample_num, iter; max_iter=1000)
+function opt(f::Function, x, sample_num, iter; max_iter=50)
     # initiate lists for logging results
     sample_num_list::Vector{Int64} = zeros(max_iter + 1)
     x_current_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(max_iter + 1)
@@ -279,7 +279,7 @@ function p_est(f::Function, bounds, n_samples)
             Terminationcriteria=res.term_criteria,
             Terminationreason=res.term_reason)
 
-        # modifying the content of myfile.csv using write method
+        # modifying the content of data.csv using write method
         CSV.write("data.csv", data; append=true)
 
         # log time for each sample point
@@ -298,24 +298,12 @@ function p_est(f::Function, bounds, n_samples)
     println("Minimum point: ", x_min)
     println("Minimum value: ", f_min)
     println("Iteration: ", iter_min)
-
-    return x_min, f_min
 end
-
-
 
 # Define the function to optimize
 f(x) = cost_function(problem_object, x, experimental_data)
 
-function intermediate_cost_function(x_small, index_x_small, x_big)
-    _x_big = convert.(eltype(x_small), x_big)
-    _x_big[index_x_small] .= x_small
-    return cost_function(problem_object, _x_big, experimental_data)
-end
-
-# Omdefinera när det behövs
-cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, [1, 2, 4], x_hatt)
 # Define bounds
-bounds = [(0, 11), (0, 11), (0, 11)]
+bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
 
 p_est(f, bounds, 500)
