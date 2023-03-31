@@ -1,6 +1,6 @@
 using Optim
-include("kinetics_calculator.jl")
 include("newton_minimize.jl")
+include("model_easy.jl")
 
 function new_point(param_last, param_index, sign; threshold=0.025, q=0.1)
     stop_flag = false
@@ -32,6 +32,13 @@ function intermediate_cost_function(x_small, index_x_small, x_big)
     return cost_function(problem_object, x_big_, experimental_data)
 end
 
+struct log_pl_results
+    fix_param_list::Vector{Union{Float64,AbstractArray}}
+    x_list::Vector{Union{Float64,AbstractArray}}
+    costfunc_value_list::Vector{Float64}
+end
+
+
 # Define the function to perform profile likelihood analysis for one parameter
 function profile_likelihood(params, data, param_index, bounds, num_points, threshold)
 
@@ -50,9 +57,10 @@ function profile_likelihood(params, data, param_index, bounds, num_points, thres
 
     stop_flag = false
     sign = -1
-    fix_param_list = zeros(num_points)
-    x_list = zeros(num_points) #define union typ
-    costfunc_value_list = zeros(num_points)
+
+    fix_param_list::Vector{Union{Float64,AbstractArray}} = zeros(num_points)
+    x_list::Vector{Union{Float64,AbstractArray}} = zeros(num_points)
+    costfunc_value_list::Vector{Float64} = zeros(num_points)
 
     i = 0
 
@@ -87,14 +95,34 @@ function profile_likelihood(params, data, param_index, bounds, num_points, thres
         end
     end
 
-    # sätta in data i struct, ta bort nollor samtidigt
-    return #nått kul
+    # puts data in struct and removes zeros
+    pl_res = log_pl_results(remove_zeros(fix_param_list),
+    remove_zeros(x_list),
+    remove_zeros(costfunc_value_list)
+    )
+    return pl_res
 end
 
 function run_profile_likelihood(params, data, bounds, num_points, threshold)
-    for i in 1:length(bounds)
-        result = profile_likelihood(params, data, i, bounds, num_points, threshold)
+
+    # Check if the profile_likelihood.csv exists and truncate it if it does
+    pl_file = open("profile_likelihood.csv", "w")
+    if isfile("profile_likelihood.csv")
+        truncate(pl_file, 0)
     end
+    close(data_file)
+
+    for i in 1:length(bounds)
+        pl_res = profile_likelihood(params, data, i, bounds, num_points, threshold)
+    end
+
+    data = DataFrame(Fixed_parameter=pl_res.fix_param_list,
+    Parameters=pl_res.x_list,
+    CostfunctionValues=pl_res.costfunc_value_list)
+
+    # modifying the content of profile_likelihood.csv using write method
+    CSV.write("profile_likelihood.csv", data; append=true)
+
 end
 
 # Define the initial parameter values
@@ -103,3 +131,5 @@ params = [0.9 0.53 3.05 9.93]
 # Perform profile likelihood analysis for each parameter
 num_points = 100
 threshold = 1.92 # For 95% confidence interval
+
+run_profile_likelihood(params, data, bounds, num_points, threshold)
