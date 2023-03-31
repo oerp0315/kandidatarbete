@@ -237,19 +237,23 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
 end
 
 function p_est(f::Function, bounds, n_samples)
-    # Check if the data.csv exists and truncate it if it does
-    data_file = open("data.csv", "w")
-    if isfile("data.csv")
-        truncate(data_file, 0)
+    # makes a folder for the result of parameter estimation
+    if isdir("p_est_results") == false
+        mkdir("p_est_results")
     end
-    close(data_file)
+    # Check if the data.csv exists and truncate it if it does
+    if isfile("p_est_results/data.csv")
+        data_file = open("p_est_results/data.csv", "w")
+        truncate(data_file, 0)
+        close(data_file)
+    end
 
     # Check if the time_log.csv exists and truncate it if it does
-    timelog_file = open("time_log.csv", "w")
-    if isfile("time_log.csv")
+    if isfile("p_est_results/time_log.csv")
+        timelog_file = open("p_est_results/time_log.csv", "w")
         truncate(timelog_file, 0)
+        close(timelog_file)
     end
-    close(timelog_file)
 
     # Generate Latin hypercube samples in the search space
     x_samples = latin_hypercube(n_samples, bounds)
@@ -280,10 +284,10 @@ function p_est(f::Function, bounds, n_samples)
             Terminationreason=res.term_reason)
 
         # modifying the content of myfile.csv using write method
-        CSV.write("data.csv", data; append=true)
+        CSV.write("p_est_results/data.csv", data; append=true)
 
         # log time for each sample point
-        CSV.write("time_log.csv", DataFrame(time=res.time_log); append=true)
+        CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
 
         # Update the minimum point and value
         f_val = f(x)
