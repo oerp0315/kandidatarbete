@@ -52,131 +52,169 @@ experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
 
 "Function to construct model"
 function model_initialize()
-    @parameters t Extracellular_glucose k_{a,Snf3}  k_{i,Snf3g}  k_{i,Std1} k_{i,Std1}  k_{i,Snf1}  k_{i,Mig1} k_{p,ATP}   k_{d,mHXT1}  T_{mHXT1}  θ_{activation}  k_{d,mHXT2}  k_{d,mHXT3}   k_{d,mHXT4}   k_{d,mMIG1} k_{d,mMIG2} k_{d,mSNF1}
-    @variables  Snf3(t) Snf3g(t) Std1(t) Std1:Rgt1(t) Mth1(t) Mth1:Rgt1(t) Mth1:Rgt1(t)  Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t)  mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
+    @variables Snf3(t) Snf3g(t) Std1(t) Mth1(t) Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t)  mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
+    @parameters t Extracellular_glucose k_a_Snf3  k_i_Snf3g  k_i_Std1 k_i_Snf1  k_i_Mig1 k_p_ATP   k_d_mHXT1  T_mHXT1  θ_activation  k_d_mHXT2  k_d_mHXT3 k_d_mHXT4 k_d_mMIG1 k_d_mMIG2 k_d_mSNF1 K_Std1_Rgt1 K_Mth1_Rgt1
     D = Differential(t)
 
-    #gener 
-    equation_system = [D(Snf3) ~ k_{t,Snf3}*mSNF3- k_{d,Snf3}*Snf3 - k_{a,Snf3}*Snf3*Extracellular_glucose + k_{i,Snf3g}*Snf3g,
-        D(Snf3g) ~ k_{a,Snf3}*Snf3*Extracellular_glucose - k_{i,Snf3}*Snf3g,
-        D(Std1) ~ k_{t,Std1}*mSTD1 - k_{d,Std1}*Std1 - k_{i,Std1}*Std1*Snf3g- k_{a,Std1:Rgt1}*std1*Rgt1+ k_{i,Std1:Rgt1}*Std1:Rgt1,
-        D(Mth1) ~ k_{t,Mth1}*mMTH1 - k_{d,Mth1}*Mth1 - k_{i,Mth1}*Mth*Snf3g- k_{a,Mth1:Rgt1}*Rgt1*Mth1 + k_{i,Mth1:Rgt1}*Mth1:Rgt1,
-        D(Rgt1) ~ k_{t,Rgt1}*mRGT1 - k_{d,Rgt1}*Rgt1 - k_{a,Std1:Rgt1}*Std1*Rgt1 + k_{i,Std1:Rgt1}*Std1:Rgt1 - k_{a,Mth1:Rgt1}*Mth1*Rgt1 + k_{i,Mth1:Rgt1}*Mth1:Rgt1, # Annat utryck om vi testar fosforylering
-        D(Std1:Rgt1) ~ k_{a,Std1:Rgt1} *Std1*Rgt1 - k_{i,Std1:Rgt1}*Std1:Rgt1,  # Dessa borde skrivas om som jämnviktsekvationer
-        D(Mth1:Rgt1) ~ k_{a,Mth1:Rgt1} *Mth1*Rgt1 - k_{i,Mth1:Rgt1}*Mth1:Rgt1, # Dessa borde skrivas om som jämnviktsekvationer
-        Rgt1_active ~ Std1:Rgt1 + Mth1:Rgt1,
+    k_t_Snf3= 0.010 #Egentilgen från RGT2!!
+    k_d_Snf3= 0.231 #Egentilgen från RGT2!!
+    k_t_Std1= 42.8
+    k_d_Std1= 0.087
+    k_t_Mth1= 6.000
+    k_d_Mth1= 0.025
+    k_t_Rgt1= 19.000
+    k_d_Rgt1=0.050
 
-        D(Hxt1)~k_{t,Hxt1}*mHXT1 - k_{d,Hxt1}*Hxt1, 
-        D(Hxt2)~k_{t,Hxt2}*mHXT2 - k_{d,Hxt2}*Hxt2, 
-        D(Hxt3)~k_{t,Hxt3}*mHXT3 - k_{d,Hxt3}*Hxt3,
-        D(Hxt4)~k_{t,Hxt4}*mHXT4 - k_{d,Hxt4}*Hxt4, 
-        D(Snf1)~ k_{t,Snf1}*mSNF1- k_{d,Snf1}*Snf1+ k_{i,Snf1}*Snf1*Cellular_glucose,
-        D(Mig1)~ k_{t,Mig1}*mMIG1 - k_{d,Mig1}*Mig1 -  k_{i,Mig1}*Mig1*Snf1,
-        D(Mig2)~k_{t,Mig2}*mMIG2 - k_{d,Mig2}*Mig2,
-        D(Cellular_glucose)~ V_{transport-Hxt1}*Extracellular_glucose/(K_{transport-Hxt1} + Extracellular_glucose) + V_{transport-Hxt2}*Extracellular_glucose/(K_{transport-Hxt2} + Extracellular_glucose) + V_{transport-Hxt3}*Extracellular_glucose/(K_{transport-Hxt3} + Extracellular_glucose) + V_{transport-Hxt4}*Extracellular_glucose/(K_{transport-Hxt4} + Extracellular_glucose) - k_{p,ATP}*Cellular_glucose, 
+    k_t_Hxt1= 1.480
+    k_t_Hxt2= 4.220
+    k_t_Hxt3= 4.230
+    k_t_Hxt4= 1.530
+    k_d_Hxt1= 0.010
+    k_d_Hxt2= 0.010
+    k_d_Hxt3= 0.010
+    k_d_Hxt4= 0.010
+    k_t_Snf1= 0.160
+    k_d_Snf1= 0.020 
+    k_t_Mig1= 62.000
+    k_d_Mig1= 0.020
+    k_t_Mig2= 6.000
+    k_d_Mig2= 0.046
+    V_transport_Hxt1= 4.14*10^20
+    K_transport_Hxt1= 5.40*10^22
+    V_transport_Hxt2= 5.82*10^19
+    K_transport_Hxt2= 9.00*10^20
+    V_transport_Hxt3= 2.16*10^20
+    K_transport_Hxt3= 3.30*10^22
+    V_transport_Hxt4= 9.60*10^19
+    K_transport_Hxt4= 5.58*10^21
 
+    V_mSNF3= 50
+    θ_Mig1_Snf3= 0.000  #Rätt?
+    θ_Mig2_Snf3= 0.010 
+    V_mSTD1= 0.040
+    θ_Rgt1_active_Std1= 0.050
+    V_mMTH1= 0.170
+    θ_Rgt1_active_MTH1= 0.030
+    θ_Mig1_MTH1= 0.460
+    θ_Mig2_MTH1= 0.001
+    V_mRGT1= 1.000
+
+    V_mHXT1= 2.56
+    θ_Rgt1_active_HXT1=5.00*10^-001
+    V_mHXT2= 1.430
+    θ_Rgt1_active_HXT2= 0.450
+    θ_Mig1_HXT2= 0.110
+    θ_Mig2_HXT2= 0.010
+    V_mHXT3= 2.350
+    θ_Rgt1_active_HXT3= 0.240
+    θ_Mig1_HXT3= 0.020
+    θ_Mig2_HXT3= 0.001
+    V_mHXT4= 34.200
+    θ_Rgt1_active_HXT4= 0.026
+    θ_Mig1_HXT4= 0.430
+    θ_Mig2_HXT4= 0.080
+    V_mMIG1= 0.020
+    θ_Mig1_MIG1= 0.020
+    θ_Mig2_MIG1= 0.000 #?????
+    V_mMIG2= 0.230
+    θ_Rgt1_active_MIG2= 0.100
+    θ_Mig1_MIG2= 0.001
+    θ_Mig2_MIG2= 0.010
+    V_mSNF1= 2.900
+    k_d_mHXT2=0
+    k_d_mHXT3=0
+    k_d_mHXT4=0
+    k_d_mMIG1=0
+    k_d_mMIG2=0
+    k_d_mSNF1=0
+    k_d_mHXT1=0
+
+
+    equation_system = [D(Snf3) ~ k_t_Snf3*mSNF3- k_d_Snf3*Snf3 - k_a_Snf3*Snf3*Extracellular_glucose + k_i_Snf3g*Snf3g,
+        D(Snf3g) ~ k_a_Snf3*Snf3*Extracellular_glucose - k_i_Snf3*Snf3g,
+        D(Std1) ~ k_t_Std1*mSTD1 - k_d_Std1*Std1 - k_i_Std1*Std1*Snf3g,
+        D(Mth1) ~ k_t_Mth1*mMTH1 - k_d_Mth1*Mth1 - k_i_Mth1*Mth*Snf3g,
+        D(Rgt1) ~ k_t_Rgt1*mRGT1 - k_d_Rgt1*Rgt1 - k_a_Std1_Rgt1*Std1*Rgt1, # Annat utryck om vi testar fosforylering
+        D(Std1_Rgt1) ~ k_a_Std1_Rgt1 *Std1*Rgt1 - k_i_Std1_Rgt1*Std1_Rgt1,
+        D(Mth1_Rgt1) ~ k_a_Mth1_Rgt1 *Mth1*Rgt1 - k_i_Mth1_Rgt1*Mth1_Rgt1, 
+        Rgt1_active ~ K_Std1_Rgt1[Std1][Rgt1] + K_Mth1_Rgt1[Mth1][Rgt1],
+
+        # Kinetik om vi antar mindre steady-state
+        #D(Std1) ~ k_t_Std1*mSTD1 - k_d_Std1*Std1 - k_i_Std1*Std1*Snf3g- k_a_Std1_Rgt1*std1*Rgt1+ k_i_Std1_Rgt1*Std1_Rgt1,
+        #D(Mth1) ~ k_t_Mth1*mMTH1 - k_d_Mth1*Mth1 - k_i_Mth1*Mth*Snf3g- k_a_Mth1_Rgt1*Rgt1*Mth1 + k_i_Mth1_Rgt1*Mth1_Rgt1,
+        #D(Rgt1) ~ k_t_Rgt1*mRGT1 - k_d_Rgt1*Rgt1 - k_a_Std1_Rgt1*Std1*Rgt1 + k_i_Std1_Rgt1*Std1_Rgt1 - k_a_Mth1_Rgt1*Mth1*Rgt1 + k_i_Mth1_Rgt1*Mth1_Rgt1, # Annat utryck om vi testar fosforylering
+        #D(Std1_Rgt1) ~ k_a_Std1_Rgt1 *Std1*Rgt1 - k_i_Std1_Rgt1*Std1_Rgt1, 
+        #D(Mth1_Rgt1) ~ k_a_Mth1_Rgt1 *Mth1*Rgt1 - k_i_Mth1_Rgt1*Mth1_Rgt1,
+        #Rgt1_active ~ Std1_Rgt1 + Mth1_Rgt1_
+
+        D(Hxt1)~k_t_Hxt1*mHXT1 - k_d_Hxt1*Hxt1, 
+        D(Hxt2)~k_t_Hxt2*mHXT2 - k_d_Hxt2*Hxt2, 
+        D(Hxt3)~k_t_Hxt3*mHXT3 - k_d_Hxt3*Hxt3,
+        D(Hxt4)~k_t_Hxt4*mHXT4 - k_d_Hxt4*Hxt4,
+        D(Snf1)~ k_t_Snf1*mSNF1- k_d_Snf1*Snf1+ k_i_Snf1*Snf1*Cellular_glucose,
+        D(Mig1)~ k_t_Mig1*mMIG1 - k_d_Mig1*Mig1 -  k_i_Mig1*Mig1*Snf1,
+        D(Mig2)~k_t_Mig2*mMIG2 - k_d_Mig2*Mig2,
+        D(Cellular_glucose)~ V_transport_Hxt1*Extracellular_glucose/(K_transport_Hxt1 + Extracellular_glucose) + V_transport_Hxt2*Extracellular_glucose/(K_transport_Hxt2 + Extracellular_glucose) + V_transport_Hxt3*Extracellular_glucose/(K_transport_Hxt3 + Extracellular_glucose) + V_transport_Hxt4*Extracellular_glucose/(K_transport_Hxt4 + Extracellular_glucose) - k_p_ATP*Cellular_glucose, 
 
         #mRNA
-        D(mSNF3) ~ -k_{d,mSNF3}*mSNF3 + V_{mSNF3}/(1+θ_{Mig1-Snf3}*Mig1)/(1+θ_{Mig2-Snf3}*Mig2),
-        D(mSTD1) ~ -k_{d,mSTD1}*mSTD1 + V_{mSTD1}/(1+θ_{Rgt1_active-Std1}*Rgt1_active),
-        D(mMTH1) ~ -k_{d,mMTH1}*mMTH1 + V_{mMTH1}/(1+θ_{Rgt1_active-MTH1}*Rgt1_active)/(1+θ_{Mig1-MTH1}*Mig1)/(1+θ_{Mig2-MTH1}*Mig2),
-        D(mRGT1) ~ - k_{d,mRGT1}*mRGT1 + V_{mRGT1},
+        D(mSNF3) ~ -k_d_mSNF3*mSNF3 + V_mSNF3/(1+θ_Mig1_Snf3*Mig1)/(1+θ_Mig2_Snf3*Mig2),
+        D(mSTD1) ~ -k_d_mSTD1*mSTD1 + V_mSTD1/(1+θ_Rgt1_active_Std1*Rgt1_active),
+        D(mMTH1) ~ -k_d_mMTH1*mMTH1 + V_mMTH1/(1+θ_Rgt1_active_MTH1*Rgt1_active)/(1+θ_Mig1_MTH1*Mig1)/(1+θ_Mig2_MTH1*Mig2),
+        D(mRGT1) ~ - k_d_mRGT1*mRGT1 + V_mRGT1,
 
-        D(mHXT1) ~ -k_{d,mHXT1}*mHXT1 + V_{mHXT1}*(T_{mHXT1}+((1-T_{mHXT1})*θ_{activation}*Rgt1)/(1+θ_{activation}*Rgt1))/(1+θ_{Rgt1_active-HXT1}*Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
-        D(mHXT2) ~ - k_{d,mHXT2}*mHXT2+ V_{mHXT2}/(1+θ_{Rgt1_active-HXT2}*Rgt1_active)/(1+θ_{Mig1-HXT2}*Mig1)/(1+θ_{Mig2-HXT2}*Mig2),
-        D(mHXT3) ~ -k_{d,mHXT3}*mHXT3 + V_{mHXT3}/(1+θ_{Rgt1_active-HXT3}*Rgt1_active)/(1+θ_{Mig1-HXT3}*Mig1)/(1+θ_{Mig2-HXT3}*Mig2),
-        D(mHXT4) ~ -k_{d,mHXT4}*mHXT4 + V_{mHXT4}/(1+θ_{Rgt1_active-HXT4}*Rgt1_active)/(1+θ_{Mig1-HXT4}*Mig1)/(1+θ_{Mig2-HXT4}*Mig2),
-        D(mMIG1) ~ -k_{d,mMIG1}*mMIG1 + V_{mMIG1}/(1+θ_{Mig1-MIG1}*Mig1)/(1+θ_{Mig2-MIG1}*Mig2),
-        D(mMIG2) ~ -k_{d,mMIG2}*mMIG2 + V_{mMIG2}/(1+θ_{Rgt1_active-MIG2}*Rgt1_active)/(1+θ_{Mig1-MIG2}*Mig1)/(1+θ_{Mig2-MIG2}*Mig2),
-        D(mSNF1) ~ -k_{d,mSNF1}*mSNF1 + V_{mSNF1}]
+        D(mHXT1) ~ -k_d_mHXT1*mHXT1 + V_mHXT1*(T_mHXT1+((1-T_mHXT1)*θ_activation*Rgt1)/(1+θ_activation*Rgt1))/(1+θ_Rgt1_active_HXT1*Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
+        D(mHXT2) ~ - k_d_mHXT2*mHXT2+ V_mHXT2/(1+θ_Rgt1_active_HXT2*Rgt1_active)/(1+θ_Mig1_HXT2*Mig1)/(1+θ_Mig2_HXT2*Mig2),
+        D(mHXT3) ~ -k_d_mHXT3*mHXT3 + V_mHXT3/(1+θ_Rgt1_active_HXT3*Rgt1_active)/(1+θ_Mig1_HXT3*Mig1)/(1+θ_Mig2_HXT3*Mig2),
+        D(mHXT4) ~ -k_d_mHXT4*mHXT4 + V_mHXT4/(1+θ_Rgt1_active_HXT4*Rgt1_active)/(1+θ_Mig1_HXT4*Mig1)/(1+θ_Mig2_HXT4*Mig2),
+        D(mMIG1) ~ -k_d_mMIG1*mMIG1 + V_mMIG1/(1+θ_Mig1_MIG1*Mig1)/(1+θ_Mig2_MIG1*Mig2),
+        D(mMIG2) ~ -k_d_mMIG2*mMIG2 + V_mMIG2/(1+θ_Rgt1_active_MIG2*Rgt1_active)/(1+θ_Mig1_MIG2*Mig1)/(1+θ_Mig2_MIG2*Mig2),
+        D(mSNF1) ~ -k_d_mSNF1*mSNF1 + V_mSNF1]
 
     @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
     system = structural_simplify(system) #Skriver om systemet så det blir lösbart
 
-    k_{t,Snf3}= 0.010 #Egentilgen från RGT2!!
-    k_{d,Snf3}= 0.231 #Egentilgen från RGT2!!
-    k_{t,Std1}= 42.8
-    k_{d,Std1}= 0.087
-    k_{a,Std1:Rgt1}= #Kommer ändras AAAA
-    k_{i,Std1:Rgt1}= #Kommer ändras
-    k_{t,Mth1}= 6.000
-    k_{d,Mth1}= 0.025
-    k_{a,Mth1:Rgt1}= #Kommer ändras AAAA
-    k_{i,Mth1:Rgt1}= #Kommer ändras
-    k_{t,Rgt1}= 19.000
-    k_{d,Rgt1}=0.050
-
-    k_{t,Hxt1}= 1.480
-    k_{t,Hxt2}= 4.220
-    k_{t,Hxt3}= 4.230
-    k_{t,Hxt4}= 1.530
-    k_{d,Hxt1}= 0.010
-    k_{d,Hxt2}= 0.010
-    k_{d,Hxt3}= 0.010
-    k_{d,Hxt4}= 0.010
-    k_{t,Snf1}= 0.160
-    k_{d,Snf1}= 0.020 
-    k_{t,Mig1}= 62.000
-    k_{d,Mig1}= 0.020
-    k_{t,Mig2}= 6.000
-    k_{d,Mig2}= 0.046
-    V_{transport-Hxt1}= 4.14*10^20
-    K_{transport-Hxt1}= 5.40*10^22
-    V_{transport-Hxt2}= 5.82*10^19
-    K_{transport-Hxt2}= 9.00*10^20
-    V_{transport-Hxt3}= 2.16*10^20
-    K_{transport-Hxt3}= 3.30*10^22
-    V_{transport-Hxt4}= 9.60*10^19
-    K_{transport-Hxt4}= 5.58*10^21
-
-
-
-    V_{mSNF3}= 50
-    θ_{Mig1-Snf3}= 0.000  #Rätt?
-    θ_{Mig2-Snf3}= 0.010 
-    V_{mSTD1}= 0.040
-    θ_{Rgt1_active-Std1}= 0.050
-    V_{mMTH1}= 0.170
-    θ_{Rgt1_active-MTH1}= 0.030
-    θ_{Mig1-MTH1}= 0.460
-    θ_{Mig2-MTH1}= 0.001
-    V_{mRGT1}= 1.000
-
-    V_{mHXT1}= 2.56
-    θ_{Rgt1_active-HXT1}=5.00*10^-001
-    V_{mHXT2}= 1.430
-    θ_{Rgt1_active-HXT2}= 0.450
-    θ_{Mig1-HXT2}= 0.110
-    θ_{Mig2-HXT2}= 0.010
-    V_{mHXT3}= 2.350
-    θ_{Rgt1_active-HXT3}= 0.240
-    θ_{Mig1-HXT3}= 0.020
-    θ_{Mig2-HXT3}= 0.001
-    V_{mHXT4}= 34.200
-    θ_{Rgt1_active-HXT4}= 0.026
-    θ_{Mig1-HXT4}= 0.430
-    θ_{Mig2-HXT4}= 0.080
-    V_{mMIG1}= 0.020
-    θ_{Mig1-MIG1}= 0.020
-    θ_{Mig2-MIG1}= 0.000 #?????
-    V_{mMIG2}= 0.230
-    θ_{Rgt1_active-MIG2}= 0.100
-    θ_{Mig1-MIG2}= 0.001
-    θ_{Mig2-MIG2}= 0.010
-    V_{mSNF1}= 2.900
 
     # Intialvärden som kommer skrivas över
-    c0 = [0, 0, 0]
-    θin = [0, 0, 0, 0]
+    c0 = zeros(25)
+    θin = zeros(10)
 
-    u0 = [c1 => c0[1],
-        c2 => c0[2],
-        c3 => c0[3]] #Definierar initialvärden
+    u0 = [Snf3 => c0[1],
+        Snf3g => c0[2],
+        Std1 => c0[3],
+        Mth1 => c0[4],
+        Rgt1_active => c0[5],
+        mSNF3 => c0[6],
+        mSTD1 => c0[7],
+        mMTH1 => c0[8],
+        mRGT1 => c0[9],
+        mHXT1 => c0[10],
+        Hxt1 => c0[11],
+        mHXT2 => c0[12],
+        Hxt2 => c0[13],
+        mHXT3 => c0[14],
+        Hxt3 => c0[15],
+        mHXT4 => c0[16],
+        Hxt4 => c0[17],
+        mSNF1 => c0[18],
+        Snf1 => c0[19],
+        Cellular_glucose => c0[20],
+        mMIG1 => c0[21],
+        Mig1 => c0[22],
+        mMIG2 => c0[23],
+        Mig2 => c0[24],
+        Rgt1 => c0[25]]
 
-    p = [θ[1] => θin[1],
-        θ[2] => θin[2],
-        θ[3] => θin[3],
-        θ[4] => θin[4]] #Definierar värden för parametrarna
+        Extracellular_glucose
+    p = [k_a,Snf3 => θin[1],
+        k_i,Snf3g => θin[2],
+        k_i,Std1 => θin[3],
+        k_i,Snf1 => θin[4],
+        k_i,Mig1 => θin[5], 
+        k_p,ATP => θin[6], 
+        T_mHXT1 => θin[7],
+        θ_activation => θin[8],
+        K_Std1_Rgt1 => θin[9],
+        K_Mth1_Rgt1 => θin[10]]
 
       tspan = (0.0, 10) #Tiden vi kör modellen under
       problem_object = ODEProblem(system, u0, tspan, p, jac=true)  #Definierar vad som ska beräknas
