@@ -37,6 +37,12 @@ function model_initialize()
       return problem_object
 end
 
+function model_solver(_problem_object, θin, c0, t_stop)
+      problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
+      solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
+      return solution
+end
+
 "Calculate difference between experiments and model"
 function cost_function(problem_object, logθ, experimental_data::AbstractVector)
       θ = exp.(logθ)
