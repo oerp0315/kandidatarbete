@@ -286,6 +286,10 @@ function p_est(f::Function, bounds, n_samples)
 <<<<<<< HEAD
         # modifying the content of myfile.csv using write method
         CSV.write("p_est_results/data.csv", data; append=true)
+=======
+        # modifying the content of data.csv using write method
+        CSV.write("data.csv", data; append=true)
+>>>>>>> 6d0db9efa3163d07b9d552bdea5e2e2414ed70fd
 
         # log time for each sample point
         CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
