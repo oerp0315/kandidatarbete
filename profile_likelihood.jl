@@ -38,14 +38,6 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
     bounds_ = copy(bounds)
 
-<<<<<<< HEAD
-=======
-    bounds_ = copy(bounds)
-    println("parameter index: ", param_index)
-    println("Bounds: ", bounds)
-    println("Length of bounds: ", length(bounds_))
-
->>>>>>> c33248de91e5ab8e818e20432ed15b5097a4d65f
     # new bounds
     current_bounds = deleteat!(bounds_, param_index)
 
