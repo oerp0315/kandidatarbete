@@ -36,7 +36,11 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
     # list of indexes to be optimized
     index_list = [i for i in 1:4 if i != param_index]
 
-    bounds_ = bounds
+    bounds_ = copy(bounds)
+    println("parameter index: ", param_index)
+    println("Bounds: ", bounds)
+    println("Length of bounds: ", length(bounds_))
+
     # new bounds
     current_bounds = deleteat!(bounds_, param_index)
 
