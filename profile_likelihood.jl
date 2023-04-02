@@ -34,7 +34,7 @@ end
 # Define the function to perform profile likelihood analysis for one parameter
 function profile_likelihood(params, param_index, bounds, num_points, threshold)
     # list of indexes to be optimized
-    index_list = [i for i in 1:4 if i != param_index]
+    index_list = [i for i in 1:length(bounds) if i != param_index]
 
     bounds_ = copy(bounds)
 
@@ -61,13 +61,13 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
         if stop_flag == false
             # calculate next point
-            params_current, stop_flag = new_point(params_current, i, sign, threshold)
+            params_current, stop_flag = new_point(params_current, param_index, sign, threshold)
 
         elseif stop_flag == true && sign == -1
             sign = 1
             i = 1
             params_current = params
-            params_current, stop_flag = new_point(params_current, i, sign, threshold)
+            params_current, stop_flag = new_point(params_current, param_index, sign, threshold)
         else
             break
         end

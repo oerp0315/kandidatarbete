@@ -276,6 +276,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples)
 
         # minimizes the cost function for the current start-guess
         res, iter, x = opt(f::Function, x, sample_num, iter)
+
         if pl_mode == false
             data = DataFrame(Samplepoint=res.sample_num_list,
                 Currentsample=res.x_current_sample_list,
@@ -316,4 +317,4 @@ f(x) = cost_function(problem_object, x, experimental_data)
 bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
 
 
-p_est(f, bounds, 10, false, 0)
+p_est(f, bounds, 100, false, 0)
