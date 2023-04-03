@@ -13,13 +13,13 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
     is_descent_direction::Bool = true
     for i in 1:50
         x_new = x + alpha * dir
-        if f(x_new) < f(x)
+        if f(x_new) < f(x) && i != 50
             x = x_new
             break
         elseif i == 50
             is_descent_direction = false
         end
-        alpha = alpha / 2
+        alpha /= 2
     end
 
     return alpha, is_descent_direction
