@@ -13,13 +13,16 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
     is_descent_direction::Bool = true
     for i in 1:50
         x_new = x + alpha * dir
-        if f(x_new) < f(x)
+        if f(x_new) == Inf
+            continue
+        elseif f(x_new) < f(x) && i != 50
             x = x_new
             break
         elseif i == 50
             is_descent_direction = false
         end
-        alpha = alpha / 2
+
+        alpha /= 2
     end
 
     return alpha, is_descent_direction
@@ -211,9 +214,9 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
 
         # logging
         sample_num_list[i+1] = sample_num
-        x_current_sample_list[i+1] = x_current_samplepoint
-        x_current_iter[i+1] = x
-        function_values[i+1] = f(x)
+        x_current_sample_list[i+1] = exp.(x_current_samplepoint)
+        x_current_iter[i+1] = exp.(x)
+        function_values[i+1] = f(exp.(x))
         term_criteria[i+1] = current_term_criteria
         cond_num_list[i+1] = cond_num
 
@@ -258,12 +261,18 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples)
 
         # Generate Latin hypercube samples in the search space
         x_samples = latin_hypercube(n_samples, bounds)
+
+        # logarithmize the samples
+        x_samples_log = log.(x_samples)
+
+        # logarithmize bounds
+        bounds_log = map(x -> (log(x[1]), log(x[2])), bounds)
     end
 
     # if the gradient is not good enough the program will terminate
-    check_gradient(f, x_samples[1, :])
+    check_gradient(f, x_samples_log[1, :])
 
-    x_min = x_samples[1, :]
+    x_min = x_samples_log[1, :]
     f_min = f(x_min)
     iter_min = 1
 
@@ -271,7 +280,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples)
     sample_num = 0
     iter = 0
 
-    for x in eachrow(x_samples)
+    for x in eachrow(x_samples_log)
         sample_num += 1
 
         # minimizes the cost function for the current start-guess
@@ -294,9 +303,9 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples)
         end
 
         # Update the minimum point and value
-        f_val = f(x)
+        f_val = f(exp.(x))
         if f_val < f_min
-            x_min = x
+            x_min = exp.(x)
             f_min = f_val
             iter_min = iter
         end

@@ -4,23 +4,29 @@ include("model_easy.jl")
 function new_point(param_last, param_index, sign, threshold; q=0.1)
     stop_flag = false
     step_size = zeros(length(param_last))
-    step_size[param_index] = 1.0 # behöver ändras?
+    step_size[param_index] = 0.2 * param_last[param_index]
     for i in 1:50
-        if abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) < 1e-3
-            break
-        elseif i == 50
+        if step_size[param_index] < 1e-6
+            step_size[param_index] = 1e-6
             stop_flag = true
+            break
+        elseif f(param_last + sign * step_size) == Inf
+            continue
+        elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) < 1e-1
+            break
         end
+
         step_size[param_index] /= 2
     end
+    new_point = param_last + sign * step_size
 
-    new_point = param_last .+ sign .* step_size
     return new_point, stop_flag
 end
 
 function intermediate_cost_function(x_small, index_x_small, x_big)
     x_big_ = convert.(eltype(x_small), x_big)
     x_big_[index_x_small] .= x_small
+
     return cost_function(problem_object, x_big_, experimental_data)
 end
 
@@ -43,15 +49,23 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
     # new start values
     x_samples = readdlm("p_est_results/latin_hypercube.csv", Float64)
+
     new_x_samples = hcat(x_samples[:, 1:param_index-1], x_samples[:, param_index+1:end])
 
     stop_flag = false
     sign = -1
 
+    # initiate lists for logging
     fix_param_index::Vector{Int64} = zeros(num_points)
     fix_param_list::Vector{Union{Float64,AbstractArray}} = zeros(num_points)
     x_list::Vector{Union{Float64,AbstractArray}} = zeros(num_points)
     costfunc_value_list::Vector{Float64} = zeros(num_points)
+
+    # log optimized parameters (start values)
+    fix_param_index[Int(num_points / 2)+1] = param_index
+    fix_param_list[Int(num_points / 2)+1] = params[param_index]
+    x_list[Int(num_points / 2)+1] = params
+    costfunc_value_list[Int(num_points / 2)+1] = f(params)
 
     i = 0
     params_current = params
@@ -76,7 +90,7 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
         cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest
-        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 100, true, new_x_samples)
+        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true, new_x_samples)
 
         if sign == -1
             fix_param_index[Int(num_points / 2)+1-i] = param_index
@@ -84,10 +98,10 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
             x_list[Int(num_points / 2)+1-i] = x_min
             costfunc_value_list[Int(num_points / 2)+1-i] = f_min
         else
-            fix_param_index[Int(num_points / 2)+i] = param_index
-            fix_param_list[Int(num_points / 2)+i] = params_current[param_index]
-            x_list[Int(num_points / 2)+i] = x_min
-            costfunc_value_list[Int(num_points / 2)+i] = f_min
+            fix_param_index[Int(num_points / 2)+1+i] = param_index
+            fix_param_list[Int(num_points / 2)+1+i] = params_current[param_index]
+            x_list[Int(num_points / 2)+1+i] = x_min
+            costfunc_value_list[Int(num_points / 2)+1+i] = f_min
         end
     end
 
@@ -131,6 +145,6 @@ params = [0.9, 0.53, 3.05, 9.93]
 
 # Perform profile likelihood analysis for each parameter
 num_points = 100
-threshold = 0.025 # For 95% confidence interval
+threshold = 0.95 # For 95% confidence interval
 
 run_profile_likelihood(params, bounds, num_points, threshold)
