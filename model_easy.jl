@@ -49,6 +49,9 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector)
       error = 0
       for data in experimental_data
             sol = model_solver(problem_object, θ, data.c0, data.t_final)
+            if !(sol.retcode == ReturnCode.Success || sol.retcode == ReturnCode.Terminated)
+                  return Inf
+            end
             c_final_model = sol.u[end]
             error += sum((c_final_model - data.c_final) .^ 2)
       end

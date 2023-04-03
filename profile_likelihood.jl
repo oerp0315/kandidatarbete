@@ -10,6 +10,8 @@ function new_point(param_last, param_index, sign, threshold; q=0.1)
             step_size[param_index] = 1e-6
             stop_flag = true
             break
+        elseif f(param_last + sign * step_size) == Inf
+            continue
         elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) < 1e-1
             break
         end
@@ -47,6 +49,7 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
     # new start values
     x_samples = readdlm("p_est_results/latin_hypercube.csv", Float64)
+
     new_x_samples = hcat(x_samples[:, 1:param_index-1], x_samples[:, param_index+1:end])
 
     stop_flag = false
