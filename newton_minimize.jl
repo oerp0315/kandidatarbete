@@ -263,7 +263,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples)
         x_samples = latin_hypercube(n_samples, bounds)
 
         # logarithmize the samples
-        x_samples_log = log.(x_samples)
+        global x_samples_log = log.(x_samples)
 
         # logarithmize bounds
         bounds_log = map(x -> (log(x[1]), log(x[2])), bounds)

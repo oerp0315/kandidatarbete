@@ -1,22 +1,29 @@
 include("newton_minimize.jl")
 include("model_easy.jl")
 
-function new_point(param_last, param_index, sign, threshold; q=0.1)
+function new_point(param_last, param_index, sign, threshold; q=0.1, max_steps=1e5)
+    step_decreased_in_a_row = 0
     stop_flag = false
     step_size = zeros(length(param_last))
     step_size[param_index] = 0.2 * param_last[param_index]
-    for i in 1:50
+    for i in 1:max_steps
         if step_size[param_index] < 1e-6
-            step_size[param_index] = 1e-6
+            #step_size[param_index] = 1e-6 # syftet med den här raden? //Miranda
             stop_flag = true
-            break
+            #här stod det break innan, ökar nu istället steglängden
+            step_size[param_index] *= 2
+            step_decreased_in_a_row += 0
         elseif f(param_last + sign * step_size) == Inf
             continue
         elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) < 1e-1
             break
+        elseif step_decreased_in_a_row == 50 
+            break #som alternativ till att vi innan itererade loopen 50 gånger 
+        else #detta la jag till här istället eftersom vi inte borde vilja minska steglängden om vi precis ökat den. Innan fanns alltså inte else-delen
+            step_size[param_index] /= 2
+            step_decreased_in_a_row += 1
         end
 
-        step_size[param_index] /= 2
     end
     new_point = param_last + sign * step_size
 
