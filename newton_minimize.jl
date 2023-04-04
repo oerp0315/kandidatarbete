@@ -243,7 +243,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
     return res, iter, x
 end
 
-function p_est(f::Function, bounds, n_samples, pl_mode, x_samples)
+function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
     if pl_mode == false
         # Check if the data.csv exists and truncate it if it does
         if isfile("p_est_results/data.csv")
@@ -263,7 +263,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples)
         x_samples = latin_hypercube(n_samples, bounds)
 
         # logarithmize the samples
-        global x_samples_log = log.(x_samples)
+        x_samples_log = log.(x_samples)
 
         # logarithmize bounds
         bounds_log = map(x -> (log(x[1]), log(x[2])), bounds)

@@ -39,7 +39,7 @@ end
 
 function model_solver(_problem_object, θin, c0, t_stop)
       problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-      solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
+      solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8, maxiters=1e5)
       return solution
 end
 
