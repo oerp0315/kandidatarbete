@@ -13,13 +13,16 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
     is_descent_direction::Bool = true
     for i in 1:50
         x_new = x + alpha * dir
-        if f(x_new) < f(x)
+        if f(x_new) == Inf
+            continue
+        elseif f(x_new) < f(x) && i != 50
             x = x_new
             break
         elseif i == 50
             is_descent_direction = false
         end
-        alpha = alpha / 2
+
+        alpha /= 2
     end
 
     return alpha, is_descent_direction
@@ -50,13 +53,17 @@ end
 function latin_hypercube(n_samples, bounds; seed=123)
     Random.seed!(seed)
 
+    # make a folder for the result of parameter estimation
+    if isdir("p_est_results") == false
+        mkdir("p_est_results")
+    end
+
     n_vars = length(bounds)
 
+    if isfile("p_est_results/latin_hypercube.csv") && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[1, :]) == n_vars &&
+       length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
 
-    if isfile("latin_hypercube.csv") && length(readdlm("latin_hypercube.csv", Float64)[1, :]) == n_vars &&
-       length(readdlm("latin_hypercube.csv", Float64)[:, 1]) == n_samples
-
-        return readdlm("latin_hypercube.csv", Float64)
+        return readdlm("p_est_results/latin_hypercube.csv", Float64)
     else
         # Initialize the Latin square as an n-by-n array of zeros
         square = zeros(Int, n_samples, n_samples)
@@ -89,7 +96,7 @@ function latin_hypercube(n_samples, bounds; seed=123)
             end
         end
 
-        open("latin_hypercube.csv", "w") do io
+        open("p_est_results/latin_hypercube.csv", "w") do io
             writedlm(io, samples)
         end
 
@@ -125,7 +132,7 @@ struct log_results
     time_log::Vector{Float64}
 end
 
-function opt(f::Function, x, sample_num, iter; max_iter=50)
+function opt(f::Function, x, sample_num, iter; max_iter=1000)
     # initiate lists for logging results
     sample_num_list::Vector{Int64} = zeros(max_iter + 1)
     x_current_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(max_iter + 1)
@@ -207,9 +214,9 @@ function opt(f::Function, x, sample_num, iter; max_iter=50)
 
         # logging
         sample_num_list[i+1] = sample_num
-        x_current_sample_list[i+1] = x_current_samplepoint
-        x_current_iter[i+1] = x
-        function_values[i+1] = f(x)
+        x_current_sample_list[i+1] = exp.(x_current_samplepoint)
+        x_current_iter[i+1] = exp.(x)
+        function_values[i+1] = f(exp.(x))
         term_criteria[i+1] = current_term_criteria
         cond_num_list[i+1] = cond_num
 
@@ -236,28 +243,36 @@ function opt(f::Function, x, sample_num, iter; max_iter=50)
     return res, iter, x
 end
 
-function p_est(f::Function, bounds, n_samples)
-    # Check if the data.csv exists and truncate it if it does
-    data_file = open("data.csv", "w")
-    if isfile("data.csv")
-        truncate(data_file, 0)
-    end
-    close(data_file)
+function p_est(f::Function, bounds, n_samples, pl_mode, x_samples)
+    if pl_mode == false
+        # Check if the data.csv exists and truncate it if it does
+        if isfile("p_est_results/data.csv")
+            data_file = open("p_est_results/data.csv", "w")
+            truncate(data_file, 0)
+            close(data_file)
+        end
 
-    # Check if the time_log.csv exists and truncate it if it does
-    timelog_file = open("time_log.csv", "w")
-    if isfile("time_log.csv")
-        truncate(timelog_file, 0)
-    end
-    close(timelog_file)
+        # Check if the time_log.csv exists and truncate it if it does
+        if isfile("p_est_results/time_log.csv")
+            timelog_file = open("p_est_results/time_log.csv", "w")
+            truncate(timelog_file, 0)
+            close(timelog_file)
+        end
 
-    # Generate Latin hypercube samples in the search space
-    x_samples = latin_hypercube(n_samples, bounds)
+        # Generate Latin hypercube samples in the search space
+        x_samples = latin_hypercube(n_samples, bounds)
+
+        # logarithmize the samples
+        global x_samples_log = log.(x_samples)
+
+        # logarithmize bounds
+        bounds_log = map(x -> (log(x[1]), log(x[2])), bounds)
+    end
 
     # if the gradient is not good enough the program will terminate
-    check_gradient(f, x_samples[1, :])
+    check_gradient(f, x_samples_log[1, :])
 
-    x_min = x_samples[1, :]
+    x_min = x_samples_log[1, :]
     f_min = f(x_min)
     iter_min = 1
 
@@ -265,30 +280,32 @@ function p_est(f::Function, bounds, n_samples)
     sample_num = 0
     iter = 0
 
-    for x in eachrow(x_samples)
+    for x in eachrow(x_samples_log)
         sample_num += 1
 
         # minimizes the cost function for the current start-guess
         res, iter, x = opt(f::Function, x, sample_num, iter)
 
-        data = DataFrame(Samplepoint=res.sample_num_list,
-            Currentsample=res.x_current_sample_list,
-            Iteration=res.x_current_iter,
-            Functionvalues=res.function_values,
-            Condnum=res.cond_num_list,
-            Terminationcriteria=res.term_criteria,
-            Terminationreason=res.term_reason)
+        if pl_mode == false
+            data = DataFrame(Samplepoint=res.sample_num_list,
+                Currentsample=res.x_current_sample_list,
+                Iteration=res.x_current_iter,
+                Functionvalues=res.function_values,
+                Condnum=res.cond_num_list,
+                Terminationcriteria=res.term_criteria,
+                Terminationreason=res.term_reason)
 
-        # modifying the content of data.csv using write method
-        CSV.write("data.csv", data; append=true)
+            # modifying the content of data.csv using write method
+            CSV.write("p_est_results/data.csv", data; append=true)
 
-        # log time for each sample point
-        CSV.write("time_log.csv", DataFrame(time=res.time_log); append=true)
+            # log time for each sample point
+            CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
+        end
 
         # Update the minimum point and value
-        f_val = f(x)
+        f_val = f(exp.(x))
         if f_val < f_min
-            x_min = x
+            x_min = exp.(x)
             f_min = f_val
             iter_min = iter
         end
@@ -297,7 +314,9 @@ function p_est(f::Function, bounds, n_samples)
     # Print the results
     println("Minimum point: ", x_min)
     println("Minimum value: ", f_min)
-    println("Iteration: ", iter_min)
+    println("Iteration resposible for minimum: ", iter_min)
+
+    return x_min, f_min
 end
 
 # Define the function to optimize
@@ -306,4 +325,5 @@ f(x) = cost_function(problem_object, x, experimental_data)
 # Define bounds
 bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
 
-p_est(f, bounds, 500)
+
+p_est(f, bounds, 10, false, 0)
