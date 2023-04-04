@@ -7,7 +7,7 @@ function new_point(param_last, param_index, sign, threshold; q=0.1)
     step_size[param_index] = 0.2 * param_last[param_index]
     for i in 1:50
         if step_size[param_index] < 1e-6
-            step_size[param_index] = 1e-6 
+            step_size[param_index] = 1e-6
             stop_flag = true
             break
         elseif f(param_last + sign * step_size) == Inf
@@ -53,20 +53,22 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
     new_x_samples = hcat(x_samples[:, 1:param_index-1], x_samples[:, param_index+1:end])
 
+    new_x_samples_log = log.(new_x_samples)
+
     stop_flag = false
     sign = -1
 
     # initiate lists for logging
-    fix_param_index::Vector{Int64} = zeros(num_points)
-    fix_param_list::Vector{Union{Float64,AbstractArray}} = zeros(num_points)
-    x_list::Vector{Union{Float64,AbstractArray}} = zeros(num_points)
-    costfunc_value_list::Vector{Float64} = zeros(num_points)
+    fix_param_index::Vector{Int64} = zeros(2 * num_points + 1)
+    fix_param_list::Vector{Union{Float64,AbstractArray}} = zeros(2 * num_points + 1)
+    x_list::Vector{Union{Float64,AbstractArray}} = zeros(2 * num_points + 1)
+    costfunc_value_list::Vector{Float64} = zeros(2 * num_points + 1)
 
     # log optimized parameters (start values)
-    fix_param_index[Int(num_points / 2)+1] = param_index
-    fix_param_list[Int(num_points / 2)+1] = params[param_index]
-    x_list[Int(num_points / 2)+1] = params
-    costfunc_value_list[Int(num_points / 2)+1] = f(params)
+    fix_param_index[Int(num_points)+1] = param_index
+    fix_param_list[Int(num_points)+1] = params[param_index]
+    x_list[Int(num_points)+1] = params
+    costfunc_value_list[Int(num_points)+1] = f(params)
 
     i = 0
     params_current = params
@@ -91,18 +93,18 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
         cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest
-        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true, new_x_samples)
+        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true, new_x_samples_log)
 
         if sign == -1
-            fix_param_index[Int(num_points / 2)+1-i] = param_index
-            fix_param_list[Int(num_points / 2)+1-i] = params_current[param_index]
-            x_list[Int(num_points / 2)+1-i] = x_min
-            costfunc_value_list[Int(num_points / 2)+1-i] = f_min
+            fix_param_index[Int(num_points)+1-i] = param_index
+            fix_param_list[Int(num_points)+1-i] = params_current[param_index]
+            x_list[Int(num_points)+1-i] = x_min
+            costfunc_value_list[Int(num_points)+1-i] = f_min
         else
-            fix_param_index[Int(num_points / 2)+1+i] = param_index
-            fix_param_list[Int(num_points / 2)+1+i] = params_current[param_index]
-            x_list[Int(num_points / 2)+1+i] = x_min
-            costfunc_value_list[Int(num_points / 2)+1+i] = f_min
+            fix_param_index[Int(num_points)+1+i] = param_index
+            fix_param_list[Int(num_points)+1+i] = params_current[param_index]
+            x_list[Int(num_points)+1+i] = x_min
+            costfunc_value_list[Int(num_points)+1+i] = f_min
         end
     end
 
