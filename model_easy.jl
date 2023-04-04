@@ -87,7 +87,6 @@ end
 
 # Kör experiment
 function experimenter(problem_object, t_stop, c0, standard_deviation, θin)
-<<<<<<< HEAD
     solution = model_solver(problem_object, θin, c0, t_stop) #Genererar lösningar
     noise_distribution = Normal(0, standard_deviation) #Skapar error
     return solution[:, end] + rand(noise_distribution, length(c0)) # Lägger till error
@@ -109,31 +108,6 @@ function plot_exact_example(problem_object, θin)
     c0 = [0.5, 0, 0.5] #Intialkoncentrationer
     sol = model_solver(problem_object, θin, c0, 2) #Kör modellen
     plot!(sol) #Plottar lösningen
-=======
-      solution = model_solver(problem_object, θin, c0, t_stop) #Genererar lösningar
-      noise_distribution = Normal(0, standard_deviation) #Skapar error
-      return solution[:, end] + rand(noise_distribution, 3) # Lägger till error
-end
-
-function random_dataset_generator(problem_object, number_of_experiments; standard_deviation=0.03, θin=[1 0.5 3 10])
-      experimental_data = []
-      for i = 1:number_of_experiments
-            t_final_data = 2 * rand() #Genererar slumpmässiga sluttider
-            c0_data = [rand(), rand(), rand()]    #Genererar slumpmässiga intial koncentrationer
-            c_final_data = experimenter(problem_object, t_final_data, c0_data, standard_deviation, θin)
-
-            current_data = experiment_results(c0_data, c_final_data, t_final_data)
-            push!(experimental_data, current_data)
-      end
-      return (experimental_data)
-end
-
-function plot_exact_example(problem_object)
-      θin = [1, 0.5, 3, 10] # Gissar parametervärden
-      c0 = [0.5, 0, 0.5] #Intialkoncentrationer
-      sol = model_solver(problem_object, θin, c0, 2) #Kör modellen
-      plot!(sol) #Plottar lösningen
->>>>>>> cc40b757ae3766a2a5330abf6ec4077cbf7489ab
 end
 
 function plot_experiment(experimental_data)
