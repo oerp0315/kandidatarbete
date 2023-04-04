@@ -110,7 +110,7 @@ function model_initialize()
     θ_Mig1_HXT3= 0.020
     θ_Mig2_HXT3= 0.001
     V_mHXT4= 34.200
-    θ_Rgt1_active_HXT4= 0.026
+    θ_Rgt1_active_HXT4= 0.026 
     θ_Mig1_HXT4= 0.430
     θ_Mig2_HXT4= 0.080
     V_mMIG1= 0.020
@@ -122,18 +122,18 @@ function model_initialize()
     θ_Mig2_MIG2= 0.010
     V_mSNF1= 2.900
 
-
-    k_d_mHXT1=0
-    k_d_mHXT2=0
-    k_d_mHXT3=0
-    k_d_mHXT4=0
-    k_d_mSNF3=0
-    k_d_mMIG1=0
-    k_d_mMIG2=0
-    k_d_mMTH1=0
-    k_d_mSTD1=0
-    k_d_mRGT1=0
-    k_d_mSNF1=0
+    #Fixa värden!!!!!!
+    k_d_mHXT1=0.1
+    k_d_mHXT2=0.1
+    k_d_mHXT3=0.1
+    k_d_mHXT4=0.1
+    k_d_mSNF3=0.1
+    k_d_mMIG1=0.1
+    k_d_mMIG2=0.1
+    k_d_mMTH1=0.1
+    k_d_mSTD1=0.1
+    k_d_mRGT1=0.1
+    k_d_mSNF1=0.1
 
 
     equation_system = [D(Snf3) ~ k_t_Snf3*mSNF3- k_d_Snf3*Snf3 - k_a_Snf3*Snf3*Extracellular_glucose + k_i_Snf3g*Snf3g,
@@ -168,7 +168,7 @@ function model_initialize()
         D(mRGT1) ~ - k_d_mRGT1*mRGT1 + V_mRGT1,
 
         D(mHXT1) ~ -k_d_mHXT1*mHXT1 + V_mHXT1*(T_mHXT1+((1-T_mHXT1)*θ_activation*Rgt1)/(1+θ_activation*Rgt1))/(1+θ_Rgt1_active_HXT1*Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
-        D(mHXT2) ~ - k_d_mHXT2*mHXT2+ V_mHXT2/(1+θ_Rgt1_active_HXT2*Rgt1_active)/(1+θ_Mig1_HXT2*Mig1)/(1+θ_Mig2_HXT2*Mig2),
+        D(mHXT2) ~ -k_d_mHXT2*mHXT2 + V_mHXT2/(1+θ_Rgt1_active_HXT2*Rgt1_active)/(1+θ_Mig1_HXT2*Mig1)/(1+θ_Mig2_HXT2*Mig2),
         D(mHXT3) ~ -k_d_mHXT3*mHXT3 + V_mHXT3/(1+θ_Rgt1_active_HXT3*Rgt1_active)/(1+θ_Mig1_HXT3*Mig1)/(1+θ_Mig2_HXT3*Mig2),
         D(mHXT4) ~ -k_d_mHXT4*mHXT4 + V_mHXT4/(1+θ_Rgt1_active_HXT4*Rgt1_active)/(1+θ_Mig1_HXT4*Mig1)/(1+θ_Mig2_HXT4*Mig2),
         D(mMIG1) ~ -k_d_mMIG1*mMIG1 + V_mMIG1/(1+θ_Mig1_MIG1*Mig1)/(1+θ_Mig2_MIG1*Mig2),
@@ -197,8 +197,7 @@ function model_initialize()
         Cellular_glucose => c0[12],
         Mig1 => c0[13],
         Mig2 => c0[14],
-        Rgt1 => c0[15],
-        
+        Rgt1 => c0[15], 
         mSNF3 => c0[16],
         mSTD1 => c0[17],
         mMTH1 => c0[18],
@@ -218,23 +217,21 @@ function model_initialize()
         K_Std1_Rgt1 => θin[5],
         k_i_Mth1 => θin[6], 
         K_Mth1_Rgt1 => θin[7],
-
         k_p_ATP => θin[8], 
         k_i_Snf1 => θin[9],
         k_i_Mig1 => θin[10], 
-
         T_mHXT1 => θin[11],
         θ_activation => θin[12] ]
 
 
       tspan = (0.0, 10) #Tiden vi kör modellen under
-      problem_object = ODEProblem(system, u0, tspan, p, jac=true)  #Definierar vad som ska beräknas
+      problem_object = ODEProblem(system, u0, tspan, p)  #Definierar vad som ska beräknas
       return problem_object
 end
 
 function model_solver(_problem_object, θin, c0, t_stop)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-    solution = solve(_problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
+    solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
     return solution
 end
 
@@ -266,11 +263,15 @@ function interpolate(t, t_1, t_2, f_1, f_2)
 end
 
 c0 = zeros(26)
-θin = zeros(12)
+θin = ones(12)
 problem_object = model_initialize()
-#solution = model_solver(problem_object, θin, c0, 20)
+solution = model_solver(problem_object, θin, c0, 25)
 
-problem_object = remake(problem_object,u0=zeros(26))
-#problem_object = remake(problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, 10), p=θin)
-solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
-#plot(solution)
+model_conc = reduce(hcat,solution.u)' #Converts from Vector{Vector} to matrix
+
+label = ["Extracellular_glucose" "Snf3" "Snf3g" "Std1" "Mth1" "Rgt1_active" "Hxt1" "Hxt2" "Hxt3" "Hxt4" "Snf1" "Cellular_glucose" "Mig1" "Mig2" "Rgt1" "mSNF3" "mSTD1" "mMTH1" "mRGT1" "mHXT1" "mHXT2" "mHXT3" "mHXT4" "mSNF1" "mMIG1" "mMIG2"]
+plot(solution.t,model_conc, label=label, linewidth = 2)
+plot!(legend=:outerbottom, legendcolumns=3)
+
+a = findfirst(==(maximum(model_conc)),model_conc)
+println(label[a[2]])
