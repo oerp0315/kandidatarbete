@@ -148,12 +148,12 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
     # calculate hessian etc. for first point
     grad = ForwardDiff.gradient(f, x)
     hess = ForwardDiff.hessian(f, x)
-    func_val = f(x)
+    func_val = f(exp.(x))
 
     # logging for first x
     sample_num_list[1] = sample_num
-    x_current_sample_list[1] = x_current_samplepoint
-    x_current_iter[1] = x
+    x_current_sample_list[1] = exp.(x_current_samplepoint)
+    x_current_iter[1] = exp.(x)
     function_values[1] = func_val
     term_criteria[1] = "start point, no termination criteria"
     cond_num_list[1] = "start point, no condition number"
@@ -174,7 +174,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         cond_num = cond(hess)
 
         # To compare with the current x in termination criteria 
-        x_prev = x
+        x_prev = exp.(x)
 
         is_descent_direction::Bool = false
 
@@ -196,7 +196,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         eps = 1e-3
 
         # calculate function value used in termination criteria
-        function_value = f(x)
+        function_value = f(exp.(x))
 
         current_term_criteria = []
         # termination criteria 1
@@ -264,15 +264,12 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
 
         # logarithmize the samples
         x_samples_log = log.(x_samples)
-
-        # logarithmize bounds
-        bounds_log = map(x -> (log(x[1]), log(x[2])), bounds)
     end
 
     # if the gradient is not good enough the program will terminate
     check_gradient(f, x_samples_log[1, :])
 
-    x_min = x_samples_log[1, :]
+    x_min = exp.(x_samples_log[1, :])
     f_min = f(x_min)
     iter_min = 1
 
@@ -323,7 +320,7 @@ end
 f(x) = cost_function(problem_object, x, experimental_data)
 
 # Define bounds
-bounds = [(0, 11), (0, 11), (0, 11), (0, 11)]
+bounds = [(0.1, 11), (0.1, 11), (0.1, 11), (0.1, 11)]
 
 
 p_est(f, bounds, 10, false, 0)
