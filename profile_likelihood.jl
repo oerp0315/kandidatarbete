@@ -97,12 +97,12 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
         if sign == -1
             fix_param_index[Int(num_points)+1-i] = param_index
-            fix_param_list[Int(num_points)+1-i] = params_current[param_index]
+            fix_param_list[Int(num_points)+1-i] = exp.(params_current[param_index])
             x_list[Int(num_points)+1-i] = x_min
             costfunc_value_list[Int(num_points)+1-i] = f_min
         else
             fix_param_index[Int(num_points)+1+i] = param_index
-            fix_param_list[Int(num_points)+1+i] = params_current[param_index]
+            fix_param_list[Int(num_points)+1+i] = exp.(params_current[param_index])
             x_list[Int(num_points)+1+i] = x_min
             costfunc_value_list[Int(num_points)+1+i] = f_min
         end
@@ -140,6 +140,16 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 
         # modifying the content of profile_likelihood.csv using write method
         CSV.write("profilelikelihood_results/profile_likelihood.csv", data; append=true)
+
+        #data to plot
+        fixed_parameter = pl_res.fix_param_list
+        costfunction_values = pl_res.costfunc_value_list
+
+        #plot
+        plot(fixed_parameter, costfunction_values)
+
+        #save plot
+        savefig("profilelikelihood_results/parameter$i.png")
     end
 end
 
