@@ -88,6 +88,7 @@ function model_initialize()
     V_transport_Hxt4= 9.60*10^19
     K_transport_Hxt4= 5.58*10^21
 
+
     V_mSNF3= 50
     θ_Mig1_Snf3= 0.000  #Rätt?
     θ_Mig2_Snf3= 0.010 
@@ -113,6 +114,8 @@ function model_initialize()
     θ_Rgt1_active_HXT4= 0.026 
     θ_Mig1_HXT4= 0.430
     θ_Mig2_HXT4= 0.080
+
+
     V_mMIG1= 0.020
     θ_Mig1_MIG1= 0.020
     θ_Mig2_MIG1= 0.000 #?????
@@ -155,12 +158,14 @@ function model_initialize()
         D(Hxt1)~k_t_Hxt1*mHXT1 - k_d_Hxt1*Hxt1, 
         D(Hxt2)~k_t_Hxt2*mHXT2 - k_d_Hxt2*Hxt2, 
         D(Hxt3)~k_t_Hxt3*mHXT3 - k_d_Hxt3*Hxt3,
-        D(Hxt4)~k_t_Hxt4*mHXT4 - k_d_Hxt4*Hxt4,
+        #D(Hxt4)~0*(k_t_Hxt4*mHXT4 - k_d_Hxt4*Hxt4),
+        D(Hxt4)~0,
+
         D(Snf1)~ k_t_Snf1*mSNF1 - k_d_Snf1*Snf1 + k_i_Snf1*Snf1*Cellular_glucose,
         D(Mig1)~ k_t_Mig1*mMIG1 - k_d_Mig1*Mig1 -  k_i_Mig1*Mig1*Snf1,
         D(Mig2)~k_t_Mig2*mMIG2 - k_d_Mig2*Mig2,
         D(Cellular_glucose)~ V_transport_Hxt1*Extracellular_glucose/(K_transport_Hxt1 + Extracellular_glucose) + V_transport_Hxt2*Extracellular_glucose/(K_transport_Hxt2 + Extracellular_glucose) + V_transport_Hxt3*Extracellular_glucose/(K_transport_Hxt3 + Extracellular_glucose) + V_transport_Hxt4*Extracellular_glucose/(K_transport_Hxt4 + Extracellular_glucose) - k_p_ATP*Cellular_glucose, 
-
+        
         #mRNA
         D(mSNF3) ~ -k_d_mSNF3*mSNF3 + V_mSNF3/(1+θ_Mig1_Snf3*Mig1)/(1+θ_Mig2_Snf3*Mig2),
         D(mSTD1) ~ -k_d_mSTD1*mSTD1 + V_mSTD1/(1+θ_Rgt1_active_Std1*Rgt1_active),
@@ -171,6 +176,7 @@ function model_initialize()
         D(mHXT2) ~ -k_d_mHXT2*mHXT2 + V_mHXT2/(1+θ_Rgt1_active_HXT2*Rgt1_active)/(1+θ_Mig1_HXT2*Mig1)/(1+θ_Mig2_HXT2*Mig2),
         D(mHXT3) ~ -k_d_mHXT3*mHXT3 + V_mHXT3/(1+θ_Rgt1_active_HXT3*Rgt1_active)/(1+θ_Mig1_HXT3*Mig1)/(1+θ_Mig2_HXT3*Mig2),
         D(mHXT4) ~ -k_d_mHXT4*mHXT4 + V_mHXT4/(1+θ_Rgt1_active_HXT4*Rgt1_active)/(1+θ_Mig1_HXT4*Mig1)/(1+θ_Mig2_HXT4*Mig2),
+        
         D(mMIG1) ~ -k_d_mMIG1*mMIG1 + V_mMIG1/(1+θ_Mig1_MIG1*Mig1)/(1+θ_Mig2_MIG1*Mig2),
         D(mMIG2) ~ -k_d_mMIG2*mMIG2 + V_mMIG2/(1+θ_Rgt1_active_MIG2*Rgt1_active)/(1+θ_Mig1_MIG2*Mig1)/(1+θ_Mig2_MIG2*Mig2),
         D(mSNF1) ~ -k_d_mSNF1*mSNF1 + V_mSNF1]
@@ -265,7 +271,7 @@ end
 c0 = zeros(26)
 θin = ones(12)
 problem_object = model_initialize()
-solution = model_solver(problem_object, θin, c0, 25)
+solution = model_solver(problem_object, θin, c0, 20)
 
 model_conc = reduce(hcat,solution.u)' #Converts from Vector{Vector} to matrix
 
@@ -275,3 +281,4 @@ plot!(legend=:outerbottom, legendcolumns=3)
 
 a = findfirst(==(maximum(model_conc)),model_conc)
 println(label[a[2]])
+println(a)
