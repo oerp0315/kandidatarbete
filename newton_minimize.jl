@@ -245,6 +245,10 @@ end
 
 function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
     if pl_mode == false
+        # create a directory for parameter estimation
+        if isdir("p_est_results") == false
+            mkdir("p_est_results")
+        end
         # Check if the data.csv exists and truncate it if it does
         if isfile("p_est_results/data.csv")
             data_file = open("p_est_results/data.csv", "w")

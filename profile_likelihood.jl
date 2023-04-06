@@ -1,7 +1,7 @@
 include("newton_minimize.jl")
 include("model_easy.jl")
 
-function new_point(param_last, param_index, sign, threshold; q=0.1)
+function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
     stop_flag = false
     step_size = zeros(length(param_last))
     step_size[param_index] = 0.2 * param_last[param_index]
@@ -12,14 +12,27 @@ function new_point(param_last, param_index, sign, threshold; q=0.1)
             break
         elseif f(param_last + sign * step_size) == Inf
             continue
-        elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) < 1e-1
+        elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) > 1e-2
+            stop_flag = true
             break
         elseif abs(f(param_last + sign * step_size) - f(param_last)) < 1e-3
             step_size[param_index] *= 4 #det blir *2 i slutänden
         end
+
         step_size[param_index] /= 2
     end
     new_point = param_last + sign * step_size
+
+    # point can not be outside of bounds
+    if sign == -1
+        if new_point[param_index] < bounds[param_index][1]
+            stop_flag = true
+        end
+    elseif sign == 1
+        if new_point[param_index] > bounds[param_index][2]
+            stop_flag = true
+        end
+    end
 
     return new_point, stop_flag
 end
@@ -73,18 +86,18 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
     i = 0
     params_current = params
 
-    while i <= num_points
+    while i < num_points
         i += 1
 
         if stop_flag == false
             # calculate next point
-            params_current, stop_flag = new_point(params_current, param_index, sign, threshold)
+            params_current, stop_flag = new_point(params_current, param_index, bounds, sign, threshold)
 
-        elseif stop_flag == true && sign == -1
+        elseif (i == 100 && sign == -1) || (!(i == 100) && stop_flag == true)  # kanske behöver kollas över
             sign = 1
             i = 1
             params_current = params
-            params_current, stop_flag = new_point(params_current, param_index, sign, threshold)
+            params_current, stop_flag = new_point(params_current, param_index, bounds, sign, threshold)
         else
             break
         end
@@ -97,12 +110,12 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
         if sign == -1
             fix_param_index[Int(num_points)+1-i] = param_index
-            fix_param_list[Int(num_points)+1-i] = exp.(params_current[param_index])
+            fix_param_list[Int(num_points)+1-i] = params_current[param_index]
             x_list[Int(num_points)+1-i] = x_min
             costfunc_value_list[Int(num_points)+1-i] = f_min
         else
             fix_param_index[Int(num_points)+1+i] = param_index
-            fix_param_list[Int(num_points)+1+i] = exp.(params_current[param_index])
+            fix_param_list[Int(num_points)+1+i] = params_current[param_index]
             x_list[Int(num_points)+1+i] = x_min
             costfunc_value_list[Int(num_points)+1+i] = f_min
         end
@@ -158,6 +171,6 @@ params = [0.9, 0.53, 3.05, 9.93]
 
 # Perform profile likelihood analysis for each parameter
 num_points = 100
-threshold = 0.95 # For 95% confidence interval
+threshold = 3.81 # For 95% confidence interval
 
 run_profile_likelihood(params, bounds, num_points, threshold)
