@@ -158,6 +158,6 @@ params = [0.9, 0.53, 3.05, 9.93]
 
 # Perform profile likelihood analysis for each parameter
 num_points = 100
-threshold = 0.95 # For 95% confidence interval
+threshold = 3.81 # For 95% confidence interval #tror detta ska ändras till 3.81
 
 run_profile_likelihood(params, bounds, num_points, threshold)
