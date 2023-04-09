@@ -16,7 +16,6 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
         if f(x_new) == Inf
             continue
         elseif f(x_new) < f(x) && i != 50
-            x = x_new
             break
         elseif i == 50
             is_descent_direction = false
@@ -327,4 +326,4 @@ f(x) = cost_function(problem_object, x, experimental_data)
 bounds = [(0.1, 11), (0.1, 11), (0.1, 11), (0.1, 11)]
 
 
-p_est(f, bounds, 10, false, 0)
+#p_est(f, bounds, 10, false, 0)
