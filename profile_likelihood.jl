@@ -12,7 +12,7 @@ function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
             break
         elseif f(param_last + sign * step_size) == Inf
             continue
-        elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) > 1e-2
+        elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) > 1
             stop_flag = true
             break
         elseif abs(f(param_last + sign * step_size) - f(param_last)) < 1e-3
@@ -89,11 +89,11 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
     while i < num_points
         i += 1
 
-        if stop_flag == false
+        if stop_flag == false && i != num_points
             # calculate next point
             params_current, stop_flag = new_point(params_current, param_index, bounds, sign, threshold)
 
-        elseif (i == 100 && sign == -1) || (!(i == 100) && stop_flag == true)  # kanske behöver kollas över
+        elseif (i == num_points && sign == -1 && !(stop_flag == true)) || (!(i == num_points) && sign == -1 && stop_flag == true)  # kanske behöver kollas över
             sign = 1
             i = 1
             params_current = params
@@ -159,7 +159,8 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
         costfunction_values = pl_res.costfunc_value_list
 
         #plot
-        plot(fixed_parameter, costfunction_values)
+        plot(fixed_parameter, costfunction_values, title="Profile likelihood parameter $i",
+            xaxis="Parameter $i", yaxis="Cost function values")
 
         #save plot
         savefig("profilelikelihood_results/parameter$i.png")
@@ -167,10 +168,10 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 end
 
 # Define the initial parameter values
-params = [0.9, 0.53, 3.05, 9.93]
+params = [1.0, 0.5, 3.0, 10.0]
 
 # Perform profile likelihood analysis for each parameter
-num_points = 100
+num_points = 10
 threshold = 3.81 # For 95% confidence interval
 
 run_profile_likelihood(params, bounds, num_points, threshold)
