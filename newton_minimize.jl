@@ -127,6 +127,7 @@ struct log_results
     function_values::Vector{Float64}
     term_criteria::Vector{Union{Float64,AbstractArray,String}}
     term_reason::Vector{Union{Float64,String}}
+    descent_method::Vector{Union{Float64,AbstractArray,String}}
     cond_num_list::AbstractVector{Union{Float64,String}}
     time_log::Vector{Float64}
 end
@@ -139,6 +140,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
     function_values::Vector{Float64} = zeros(max_iter + 1)
     term_criteria::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
     term_reason::Vector{Union{Float64,String}} = zeros(max_iter + 1)
+    descent_method::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
     cond_num_list::AbstractVector{Union{Float64,String}} = zeros(max_iter + 1)
     time_log::Vector{Float64} = zeros(1)
 
@@ -155,6 +157,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
     x_current_iter[1] = exp.(x)
     function_values[1] = func_val
     term_criteria[1] = "start point, no termination criteria"
+    descent_method[1] = "start point, not descended yet"
     cond_num_list[1] = "start point, no condition number"
     term_reason[1] = "start point, no reason for temination"
 
@@ -177,13 +180,20 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
 
         is_descent_direction::Bool = false
 
+        current_descent_method = []
+
         # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
         if isposdef(hess)
             x, is_descent_direction = newton_method(f, grad, hess, x)
+            #logging the used descent method
+            push!(current_descent_method, "Newton method")
         end
 
         if !is_descent_direction
             x, is_descent_direction = steepest_descent(f, grad, x)
+            #logging the used descent method
+            push!(current_descent_method, "Steepest descent")
+
         end
 
         if !is_descent_direction
@@ -217,6 +227,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         x_current_iter[i+1] = exp.(x)
         function_values[i+1] = f(exp.(x))
         term_criteria[i+1] = current_term_criteria
+        descent_method[i+1] = current_descent_method
         cond_num_list[i+1] = cond_num
 
         if length(current_term_criteria) >= 2
@@ -236,6 +247,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         remove_zeros(function_values),
         remove_zeros(term_criteria),
         remove_zeros(term_reason),
+        remove_zeros(descent_method),
         remove_zeros(cond_num_list),
         time_log)
 
@@ -293,6 +305,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
                 Functionvalues=res.function_values,
                 Condnum=res.cond_num_list,
                 Terminationcriteria=res.term_criteria,
+                Descentmethod=res.descent_method,
                 Terminationreason=res.term_reason)
 
             # modifying the content of data.csv using write method
@@ -326,4 +339,4 @@ f(x) = cost_function(problem_object, x, experimental_data)
 bounds = [(0.1, 11), (0.1, 11), (0.1, 11), (0.1, 11)]
 
 
-#p_est(f, bounds, 10, false, 0)
+p_est(f, bounds, 10, false, 0)
