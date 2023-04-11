@@ -26,10 +26,12 @@ function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
     # point can not be outside of bounds
     if sign == -1
         if new_point[param_index] < bounds[param_index][1]
+            new_point[param_index] = bounds[param_index][1]
             stop_flag = true
         end
     elseif sign == 1
         if new_point[param_index] > bounds[param_index][2]
+            new_point[param_index] = bounds[param_index][2]
             stop_flag = true
         end
     end
