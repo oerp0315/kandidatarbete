@@ -10,12 +10,12 @@ function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
             step_size[param_index] = 1e-6
             stop_flag = true
             break
-        elseif f(param_last + sign * step_size) == Inf
+        elseif f(log.(param_last + sign * step_size)) == Inf
             continue
-        elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) > 1e-1
+        elseif abs(f(log.(param_last + sign * step_size)) - f(log.(param_last)) - q * threshold) > 1
             stop_flag = true
             break
-        elseif abs(f(param_last + sign * step_size) - f(param_last)) < 1e-3
+        elseif abs(f(log.(param_last + sign * step_size)) - f(log.(param_last))) < 1e-3
             step_size[param_index] *= 4 #det blir *2 i slutänden
         end
 
@@ -83,7 +83,7 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
     fix_param_index[Int(num_points)+1] = param_index
     fix_param_list[Int(num_points)+1] = params[param_index]
     x_list[Int(num_points)+1] = params
-    costfunc_value_list[Int(num_points)+1] = f(params)
+    costfunc_value_list[Int(num_points)+1] = f(log.(params))
 
     i = 0
     params_current = params

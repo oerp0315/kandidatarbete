@@ -154,8 +154,8 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
 
     # logging for first x
     sample_num_list[1] = sample_num
-    x_current_sample_list[1] = x_current_samplepoint
-    x_current_iter[1] = x
+    x_current_sample_list[1] = exp.(x_current_samplepoint)
+    x_current_iter[1] = exp.(x)
     function_values[1] = func_val
     term_criteria[1] = "start point, no termination criteria"
     descent_method[1] = "start point, not descended yet"
@@ -224,7 +224,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
 
         # logging
         sample_num_list[i+1] = sample_num
-        x_current_sample_list[i+1] = x_current_samplepoint
+        x_current_sample_list[i+1] = exp.(x_current_samplepoint)
         x_current_iter[i+1] = exp.(x)
         function_values[i+1] = f(x)
         term_criteria[i+1] = current_term_criteria
@@ -321,7 +321,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
         # Update the minimum point and value
         f_val = f(x)
         if f_val < f_min
-            x_min = x
+            x_min = exp.(x)
             f_min = f_val
             iter_min = iter
         end
@@ -339,7 +339,7 @@ end
 f(x) = cost_function(problem_object, x, experimental_data)
 
 # Define bounds
-bounds = [(0.1, 11), (0.1, 11), (0.1, 11), (0.1, 11)]
+bounds = [(0.1, 3), (0.1, 3), (0.1, 3), (0.1, 3)]
 
 
-#p_est(f, bounds, 10, false, 0)
+p_est(f, bounds, 10, false, 0)
