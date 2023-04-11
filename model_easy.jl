@@ -119,7 +119,7 @@ function plot_experiment(experimental_data)
 end
 
 problem_object = model_4p_initialize()
-experimental_data = random_dataset_generator(problem_object, 10, [1 0.5 3 10])
+experimental_data = random_dataset_generator(problem_object, 10, [1 0.5 1.5 2])
 
 #problem_object = model_2p_initialize()
 #experimental_data = random_dataset_generator(problem_object, 10, [1, 0.5])

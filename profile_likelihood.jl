@@ -12,7 +12,7 @@ function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
             break
         elseif f(param_last + sign * step_size) == Inf
             continue
-        elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) > 1
+        elseif abs(f(param_last + sign * step_size) - f(param_last) - q * threshold) > 1e-1
             stop_flag = true
             break
         elseif abs(f(param_last + sign * step_size) - f(param_last)) < 1e-3
@@ -170,7 +170,7 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 end
 
 # Define the initial parameter values
-params = [1.0, 0.5, 3.0, 10.0]
+params = [1, 0.5, 1.5, 2]
 
 # Perform profile likelihood analysis for each parameter
 num_points = 10

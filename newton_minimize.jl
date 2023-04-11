@@ -14,6 +14,7 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
     for i in 1:50
         x_new = x + alpha * dir
         if f(x_new) == Inf
+            alpha /= 2
             continue
         elseif f(x_new) < f(x) && i != 50
             break
@@ -149,12 +150,12 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
     # calculate hessian etc. for first point
     grad = ForwardDiff.gradient(f, x)
     hess = ForwardDiff.hessian(f, x)
-    func_val = f(exp.(x))
+    func_val = f(x)
 
     # logging for first x
     sample_num_list[1] = sample_num
-    x_current_sample_list[1] = exp.(x_current_samplepoint)
-    x_current_iter[1] = exp.(x)
+    x_current_sample_list[1] = x_current_samplepoint
+    x_current_iter[1] = x
     function_values[1] = func_val
     term_criteria[1] = "start point, no termination criteria"
     descent_method[1] = "start point, not descended yet"
@@ -176,7 +177,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         cond_num = cond(hess)
 
         # To compare with the current x in termination criteria 
-        x_prev = exp.(x)
+        x_prev = x
 
         is_descent_direction::Bool = false
 
@@ -205,7 +206,7 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
         eps = 1e-3
 
         # calculate function value used in termination criteria
-        function_value = f(exp.(x))
+        function_value = f(x)
 
         current_term_criteria = []
         # termination criteria 1
@@ -223,9 +224,9 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
 
         # logging
         sample_num_list[i+1] = sample_num
-        x_current_sample_list[i+1] = exp.(x_current_samplepoint)
+        x_current_sample_list[i+1] = x_current_samplepoint
         x_current_iter[i+1] = exp.(x)
-        function_values[i+1] = f(exp.(x))
+        function_values[i+1] = f(x)
         term_criteria[i+1] = current_term_criteria
         descent_method[i+1] = current_descent_method
         cond_num_list[i+1] = cond_num
@@ -284,8 +285,10 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
     # if the gradient is not good enough the program will terminate
     check_gradient(f, x_samples_log[1, :])
 
-    x_min = exp.(x_samples_log[1, :])
+    # start values, set for first sample
+    x_min = x_samples_log[1, :]
     f_min = f(x_min)
+
     iter_min = 1
 
     # initiate varible sample and iteration number
@@ -316,16 +319,16 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
         end
 
         # Update the minimum point and value
-        f_val = f(exp.(x))
+        f_val = f(x)
         if f_val < f_min
-            x_min = exp.(x)
+            x_min = x
             f_min = f_val
             iter_min = iter
         end
     end
 
     # Print the results
-    println("Minimum point: ", x_min)
+    println("Minimum point: ", exp.(x_min))
     println("Minimum value: ", f_min)
     println("Iteration resposible for minimum: ", iter_min)
 
@@ -339,4 +342,4 @@ f(x) = cost_function(problem_object, x, experimental_data)
 bounds = [(0.1, 11), (0.1, 11), (0.1, 11), (0.1, 11)]
 
 
-p_est(f, bounds, 10, false, 0)
+#p_est(f, bounds, 10, false, 0)
