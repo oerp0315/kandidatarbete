@@ -328,7 +328,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
     end
 
     # Print the results
-    println("Minimum point: ", exp.(x_min))
+    println("Minimum point: ", x_min)
     println("Minimum value: ", f_min)
     println("Iteration resposible for minimum: ", iter_min)
 
