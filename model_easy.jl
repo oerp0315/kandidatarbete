@@ -95,8 +95,8 @@ end
 function random_dataset_generator(problem_object, number_of_experiments, θin; standard_deviation=0.01)
       experimental_data = []
       for i = 1:number_of_experiments
-            t_final_data = 2 * rand() #Genererar slumpmässiga sluttider
-            c0_data = rand!(zeros(length(problem_object.u0))) #Genererar slumpmässiga intial koncentrationer
+            t_final_data = 1 * rand() #Genererar slumpmässiga sluttider
+            c0_data = [0.5, 0, 0.5] #Genererar slumpmässiga intial koncentrationer
             c_final_data = experimenter(problem_object, t_final_data, c0_data, standard_deviation, θin)
             current_data = experiment_results(c0_data, c_final_data, t_final_data)
             push!(experimental_data, current_data)
@@ -106,7 +106,7 @@ end
 
 function plot_exact_example(problem_object, θin)
       c0 = [0.5, 0, 0.5] #Intialkoncentrationer
-      sol = model_solver(problem_object, θin, c0, 2) #Kör modellen
+      sol = model_solver(problem_object, θin, c0, 1) #Kör modellen
       plot!(sol) #Plottar lösningen
       savefig("exact_ex.png")
 end
@@ -119,10 +119,10 @@ function plot_experiment(experimental_data)
 end
 
 problem_object = model_4p_initialize()
-experimental_data = random_dataset_generator(problem_object, 10, [1 0.5 1.5 2])
+experimental_data = random_dataset_generator(problem_object, 10, [1 0.5 3 10])
 
-#plot_exact_example(problem_object, [1 0.5 1.5 2])
-#plot_experiment(experimental_data)
+plot_exact_example(problem_object, [1 0.5 3 10])
+plot_experiment(experimental_data)
 
 #problem_object = model_2p_initialize()
 #experimental_data = random_dataset_generator(problem_object, 10, [1, 0.5])

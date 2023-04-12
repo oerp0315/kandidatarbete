@@ -339,7 +339,7 @@ end
 f(x) = cost_function(problem_object, x, experimental_data)
 
 # Define bounds
-bounds = [(0.1, 3), (0.1, 3), (0.1, 3), (0.1, 3)]
+bounds = [(0.1, 11), (0.1, 11), (0.1, 11), (0.1, 11)]
 
 
 p_est(f, bounds, 10, false, 0)
