@@ -60,7 +60,11 @@ function latin_hypercube(n_samples, bounds; seed=123)
 
     n_vars = length(bounds)
 
-    if isfile("p_est_results/latin_hypercube.csv") && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[1, :]) == n_vars &&
+    # previous bounds
+    read_previous_bounds = CSV.File("test_file.csv") |> DataFrame
+    previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
+
+    if isfile("p_est_results/bounds.csv") && bounds == previous_bounds &&
        length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
 
         return readdlm("p_est_results/latin_hypercube.csv", Float64)
@@ -99,6 +103,9 @@ function latin_hypercube(n_samples, bounds; seed=123)
         open("p_est_results/latin_hypercube.csv", "w") do io
             writedlm(io, samples)
         end
+
+        # log used bounds
+        CSV.write("p_est_results/bounds.csv", DataFrame(bounds))
 
         return samples
     end
