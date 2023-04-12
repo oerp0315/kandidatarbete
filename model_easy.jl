@@ -87,18 +87,16 @@ end
 
 # Kör experiment
 function experimenter(problem_object, t_stop, c0, standard_deviation, θin)
-      Random.seed!(123)
       solution = model_solver(problem_object, θin, c0, t_stop) #Genererar lösningar
       noise_distribution = Normal(0, standard_deviation) #Skapar error
       return solution[:, end] + rand(noise_distribution, length(c0)) # Lägger till error
 end
 
-function random_dataset_generator(problem_object, number_of_experiments, θin; standard_deviation=0.03)
-      Random.seed!(123)
+function random_dataset_generator(problem_object, number_of_experiments, θin; standard_deviation=0.01)
       experimental_data = []
       for i = 1:number_of_experiments
             t_final_data = 2 * rand() #Genererar slumpmässiga sluttider
-            c0_data = rand!(zeros(length(problem_object.u0)))    #Genererar slumpmässiga intial koncentrationer
+            c0_data = rand!(zeros(length(problem_object.u0))) #Genererar slumpmässiga intial koncentrationer
             c_final_data = experimenter(problem_object, t_final_data, c0_data, standard_deviation, θin)
             current_data = experiment_results(c0_data, c_final_data, t_final_data)
             push!(experimental_data, current_data)
@@ -110,16 +108,21 @@ function plot_exact_example(problem_object, θin)
       c0 = [0.5, 0, 0.5] #Intialkoncentrationer
       sol = model_solver(problem_object, θin, c0, 2) #Kör modellen
       plot!(sol) #Plottar lösningen
+      savefig("exact_ex.png")
 end
 
 function plot_experiment(experimental_data)
       for data in experimental_data
             plot!(data.t_final * ones(length(data.c_final)), data.c_final, seriestype=:scatter) #Plottar lösningen
       end
+      savefig("exp_data.png")
 end
 
 problem_object = model_4p_initialize()
 experimental_data = random_dataset_generator(problem_object, 10, [1 0.5 1.5 2])
+
+#plot_exact_example(problem_object, [1 0.5 1.5 2])
+#plot_experiment(experimental_data)
 
 #problem_object = model_2p_initialize()
 #experimental_data = random_dataset_generator(problem_object, 10, [1, 0.5])
