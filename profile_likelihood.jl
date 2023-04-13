@@ -4,10 +4,14 @@ include("model_easy.jl")
 function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
     stop_flag = false
     step_size = zeros(length(param_last))
-    step_size[param_index] = 0.2 * param_last[param_index]
+    step_size[param_index] = 1e-3 * param_last[param_index] #ändra värdet ev
     for i in 1:50
         if step_size[param_index] < 1e-6
             step_size[param_index] = 1e-6
+            stop_flag = true
+            break
+        elseif step_size[param_index] > 2.0 * param_last[param_index]
+            step_size[param_index] = 2.0 * param_last[param_index]
             stop_flag = true
             break
         elseif f(log.(param_last + sign * step_size)) == Inf
@@ -15,10 +19,12 @@ function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
         elseif abs(f(log.(param_last + sign * step_size)) - f(log.(param_last)) - q * threshold) > 1
             stop_flag = true
             break
+        elseif f(log.(param_last + sign * step_size)) > f(log.(params)) * 1.1 #försök hitta detta värde i artikeln
+            stop_flag = true
+            break
         elseif abs(f(log.(param_last + sign * step_size)) - f(log.(param_last))) < 1e-3
             step_size[param_index] *= 4 #det blir *2 i slutänden
         end
-
         step_size[param_index] /= 2
     end
     new_point = param_last + sign * step_size
