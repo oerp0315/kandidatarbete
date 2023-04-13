@@ -92,8 +92,10 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector)
             if !(sol.retcode == ReturnCode.Success || sol.retcode == ReturnCode.Terminated)
                 success = false
             end
-            c_final_model = sol.u[end]
-            error += sum((c_final_model - data.c_final) .^ 2)
+            if success
+                c_final_model = sol.u[end]
+                error += sum((c_final_model - data.c_final) .^ 2)
+            end
         catch e
             check_error(e)
             success == false
