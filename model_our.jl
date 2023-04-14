@@ -1,4 +1,10 @@
-using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
+using DifferentialEquations
+using ModelingToolkit
+using Plots
+using Random
+using Distributions
+using DataFrames
+using CSV
 
 # Skriv om
 "Object for experimental results"
@@ -275,10 +281,9 @@ solution = model_solver(problem_object, θin, c0, 20)
 
 model_conc = reduce(hcat,solution.u)' #Converts from Vector{Vector} to matrix
 
-label = ["Extracellular_glucose" "Snf3" "Snf3g" "Std1" "Mth1" "Rgt1_active" "Hxt1" "Hxt2" "Hxt3" "Hxt4" "Snf1" "Cellular_glucose" "Mig1" "Mig2" "Rgt1" "mSNF3" "mSTD1" "mMTH1" "mRGT1" "mHXT1" "mHXT2" "mHXT3" "mHXT4" "mSNF1" "mMIG1" "mMIG2"]
-plot(solution.t,model_conc, label=label, linewidth = 2)
+label = ["Extracellular_glucose","Snf3","Snf3g","Std1","Mth1","Rgt1_active","Hxt1","Hxt2","Hxt3","Hxt4","Snf1","Cellular_glucose","Mig1","Mig2","Rgt1","mSNF3","mSTD1","mMTH1","mRGT1","mHXT1","mHXT2","mHXT3","mHXT4","mSNF1","mMIG1","mMIG2"]
+plot(solution.t, model_conc, label=label, linewidth = 2)
 plot!(legend=:outerbottom, legendcolumns=3)
 
-a = findfirst(==(maximum(model_conc)),model_conc)
-println(label[a[2]])
-println(a)
+df = DataFrame(gene=label, conc=model_conc[end,:])
+CSV.write("kinetic_data.csv",df)
