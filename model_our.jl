@@ -1,4 +1,12 @@
-using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
+using DifferentialEquations
+using ModelingToolkit
+using Plots
+using Random
+using Distributions
+using DataFrames
+using CSV
+
+println("Nu kör vi!!!")
 
 # Skriv om
 "Object for experimental results"
@@ -126,17 +134,17 @@ function model_initialize()
     V_mSNF1= 2.900
 
     #Fixa värden!!!!!!
-    k_d_mHXT1=0.1
-    k_d_mHXT2=0.1
-    k_d_mHXT3=0.1
-    k_d_mHXT4=0.1
-    k_d_mSNF3=0.1
-    k_d_mMIG1=0.1
-    k_d_mMIG2=0.1
-    k_d_mMTH1=0.1
-    k_d_mSTD1=0.1
-    k_d_mRGT1=0.1
-    k_d_mSNF1=0.1
+    k_d_mHXT1=0.03
+    k_d_mHXT2=0.03
+    k_d_mHXT3=0.03
+    k_d_mHXT4=0.06
+    k_d_mSNF3=0.02
+    k_d_mMIG1=0.04
+    k_d_mMIG2=0.04
+    k_d_mMTH1=0.04
+    k_d_mSTD1=0.01
+    k_d_mRGT1=0.04
+    k_d_mSNF1=0.04
 
 
     equation_system = [D(Snf3) ~ k_t_Snf3*mSNF3- k_d_Snf3*Snf3 - k_a_Snf3*Snf3*Extracellular_glucose + k_i_Snf3g*Snf3g,
@@ -158,25 +166,24 @@ function model_initialize()
         D(Hxt1)~k_t_Hxt1*mHXT1 - k_d_Hxt1*Hxt1, 
         D(Hxt2)~k_t_Hxt2*mHXT2 - k_d_Hxt2*Hxt2, 
         D(Hxt3)~k_t_Hxt3*mHXT3 - k_d_Hxt3*Hxt3,
-        #D(Hxt4)~0*(k_t_Hxt4*mHXT4 - k_d_Hxt4*Hxt4),
-        D(Hxt4)~0,
+        D(Hxt4)~0*(k_t_Hxt4*mHXT4 - k_d_Hxt4*Hxt4),
 
-        D(Snf1)~ k_t_Snf1*mSNF1 - k_d_Snf1*Snf1 + k_i_Snf1*Snf1*Cellular_glucose,
+        D(Snf1)~ k_t_Snf1*mSNF1 - k_d_Snf1*Snf1 - k_i_Snf1*Snf1*Cellular_glucose, #Bytt minus på sista termen
         D(Mig1)~ k_t_Mig1*mMIG1 - k_d_Mig1*Mig1 -  k_i_Mig1*Mig1*Snf1,
         D(Mig2)~k_t_Mig2*mMIG2 - k_d_Mig2*Mig2,
         D(Cellular_glucose)~ V_transport_Hxt1*Extracellular_glucose/(K_transport_Hxt1 + Extracellular_glucose) + V_transport_Hxt2*Extracellular_glucose/(K_transport_Hxt2 + Extracellular_glucose) + V_transport_Hxt3*Extracellular_glucose/(K_transport_Hxt3 + Extracellular_glucose) + V_transport_Hxt4*Extracellular_glucose/(K_transport_Hxt4 + Extracellular_glucose) - k_p_ATP*Cellular_glucose, 
-        
+
         #mRNA
         D(mSNF3) ~ -k_d_mSNF3*mSNF3 + V_mSNF3/(1+θ_Mig1_Snf3*Mig1)/(1+θ_Mig2_Snf3*Mig2),
         D(mSTD1) ~ -k_d_mSTD1*mSTD1 + V_mSTD1/(1+θ_Rgt1_active_Std1*Rgt1_active),
         D(mMTH1) ~ -k_d_mMTH1*mMTH1 + V_mMTH1/(1+θ_Rgt1_active_MTH1*Rgt1_active)/(1+θ_Mig1_MTH1*Mig1)/(1+θ_Mig2_MTH1*Mig2),
-        D(mRGT1) ~ - k_d_mRGT1*mRGT1 + V_mRGT1,
+        D(mRGT1) ~ -k_d_mRGT1*mRGT1 + V_mRGT1,
 
         D(mHXT1) ~ -k_d_mHXT1*mHXT1 + V_mHXT1*(T_mHXT1+((1-T_mHXT1)*θ_activation*Rgt1)/(1+θ_activation*Rgt1))/(1+θ_Rgt1_active_HXT1*Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
         D(mHXT2) ~ -k_d_mHXT2*mHXT2 + V_mHXT2/(1+θ_Rgt1_active_HXT2*Rgt1_active)/(1+θ_Mig1_HXT2*Mig1)/(1+θ_Mig2_HXT2*Mig2),
         D(mHXT3) ~ -k_d_mHXT3*mHXT3 + V_mHXT3/(1+θ_Rgt1_active_HXT3*Rgt1_active)/(1+θ_Mig1_HXT3*Mig1)/(1+θ_Mig2_HXT3*Mig2),
         D(mHXT4) ~ -k_d_mHXT4*mHXT4 + V_mHXT4/(1+θ_Rgt1_active_HXT4*Rgt1_active)/(1+θ_Mig1_HXT4*Mig1)/(1+θ_Mig2_HXT4*Mig2),
-        
+
         D(mMIG1) ~ -k_d_mMIG1*mMIG1 + V_mMIG1/(1+θ_Mig1_MIG1*Mig1)/(1+θ_Mig2_MIG1*Mig2),
         D(mMIG2) ~ -k_d_mMIG2*mMIG2 + V_mMIG2/(1+θ_Rgt1_active_MIG2*Rgt1_active)/(1+θ_Mig1_MIG2*Mig1)/(1+θ_Mig2_MIG2*Mig2),
         D(mSNF1) ~ -k_d_mSNF1*mSNF1 + V_mSNF1]
@@ -186,35 +193,34 @@ function model_initialize()
 
 
     # Intialvärden som kommer skrivas över
-    c0 = zeros(26)
+    c0 = zeros(24)
     θin = zeros(12)
 
-    u0 = [Extracellular_glucose => c0[1],
-        Snf3 => c0[2],
-        Snf3g => c0[3],
-        Std1 => c0[4],
-        Mth1 => c0[5],
-        Rgt1_active => c0[6],
-        Hxt1 => c0[7],
-        Hxt2 => c0[8],
-        Hxt3 => c0[9],
-        Hxt4 => c0[10],
-        Snf1 => c0[11],
-        Cellular_glucose => c0[12],
-        Mig1 => c0[13],
-        Mig2 => c0[14],
-        Rgt1 => c0[15], 
-        mSNF3 => c0[16],
-        mSTD1 => c0[17],
-        mMTH1 => c0[18],
-        mRGT1 => c0[19],
-        mHXT1 => c0[20],
-        mHXT2 => c0[21],
-        mHXT3 => c0[22],
-        mHXT4 => c0[23],
-        mSNF1 => c0[24],
-        mMIG1 => c0[25],
-        mMIG2 => c0[26]]
+    u0 = [
+        Snf3 => c0[1],
+        Snf3g => c0[2],
+        Std1 => c0[3],
+        Mth1 => c0[4],
+        Hxt1 => c0[5],
+        Hxt2 => c0[6],
+        Hxt3 => c0[7],
+        Hxt4 => c0[8],
+        Snf1 => c0[9],
+        Cellular_glucose => c0[10],
+        Mig1 => c0[11],
+        Mig2 => c0[12],
+        Rgt1 => c0[13], 
+        mSNF3 => c0[14],
+        mSTD1 => c0[15],
+        mMTH1 => c0[16],
+        mRGT1 => c0[17],
+        mHXT1 => c0[18],
+        mHXT2 => c0[19],
+        mHXT3 => c0[20],
+        mHXT4 => c0[21],
+        mSNF1 => c0[22],
+        mMIG1 => c0[23],
+        mMIG2 => c0[24]]
 
     p = [Extracellular_glucose => θin[1],
         k_a_Snf3 => θin[2],
@@ -232,7 +238,7 @@ function model_initialize()
 
       tspan = (0.0, 10) #Tiden vi kör modellen under
       problem_object = ODEProblem(system, u0, tspan, p)  #Definierar vad som ska beräknas
-      return problem_object
+      return problem_object, system
 end
 
 function model_solver(_problem_object, θin, c0, t_stop)
@@ -268,17 +274,26 @@ function interpolate(t, t_1, t_2, f_1, f_2)
     return f_1 + (t-t_1) * (f_1 -f_2)/(t_1-t_2)
 end
 
-c0 = zeros(26)
+c0 = zeros(24)
 θin = ones(12)
-problem_object = model_initialize()
-solution = model_solver(problem_object, θin, c0, 20)
+problem_object, system = model_initialize()
+solution = model_solver(problem_object, θin, c0, 500)
 
-model_conc = reduce(hcat,solution.u)' #Converts from Vector{Vector} to matrix
 
-label = ["Extracellular_glucose" "Snf3" "Snf3g" "Std1" "Mth1" "Rgt1_active" "Hxt1" "Hxt2" "Hxt3" "Hxt4" "Snf1" "Cellular_glucose" "Mig1" "Mig2" "Rgt1" "mSNF3" "mSTD1" "mMTH1" "mRGT1" "mHXT1" "mHXT2" "mHXT3" "mHXT4" "mSNF1" "mMIG1" "mMIG2"]
-plot(solution.t,model_conc, label=label, linewidth = 2)
-plot!(legend=:outerbottom, legendcolumns=3)
+time= reshape(solution.t, length(solution.t), 1)
+model_conc = transpose(Matrix(solution))
+labels = string.(states(system))
+labels = reshape(labels, 1, length(labels))
 
-a = findfirst(==(maximum(model_conc)),model_conc)
-println(label[a[2]])
-println(a)
+plot(solution.t, model_conc, label=labels, linewidth = 2)
+#plot!(legend=:outerbottom, legendcolumn=3)
+savefig("kinetikfil.png")
+
+
+foo = DataFrame(hcat(time,model_conc),:auto)
+rename!(foo, 2:25 .=> labels)
+rename!(foo,1 .=> "Time" )
+CSV.write("kinetic_data.csv",foo)
+
+
+
