@@ -1,31 +1,38 @@
 include("newton_minimize.jl")
 include("model_easy.jl")
 
-function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
+function new_point(param_last, param_index, bounds, sign, threshold; q=0.1, abstol=1e-2, reltol=1e-2)
     stop_flag = false
     step_size = zeros(length(param_last))
     step_size[param_index] = 1e-3 * param_last[param_index] #ändra värdet ev
-    for i in 1:50
-        if step_size[param_index] < 1e-6
-            step_size[param_index] = 1e-6
-            stop_flag = true
-            break
-        elseif step_size[param_index] > 2.0 * param_last[param_index]
-            step_size[param_index] = 2.0 * param_last[param_index]
-            stop_flag = true
-            break
-        elseif f(log.(param_last + sign * step_size)) == Inf
-            continue
-        elseif abs(f(log.(param_last + sign * step_size)) - f(log.(param_last)) - q * threshold) > 1
-            stop_flag = true
-            break
-        elseif f(log.(param_last + sign * step_size)) > f(log.(params)) * 1.1 #försök hitta detta värde i artikeln
-            stop_flag = true
-            break
-        elseif abs(f(log.(param_last + sign * step_size)) - f(log.(param_last))) < 1e-3
-            step_size[param_index] *= 4 #det blir *2 i slutänden
+    cond_val = abs(f(log.(param_last + sign * step_size)) - f(log.(param_last)) - q * threshold)
+
+    if f(log.(param_last + sign * step_size)) == Inf || cond_val > abstol + reltol * f(log.(param_last))
+        while f(log.(param_last + sign * step_size)) == Inf || cond_val > abstol + reltol * f(log.(param_last))
+            step_size[param_index] /= 2
+            if f(log.(param_last + sign * step_size)) > f(log.(params)) * 1.2 # försök hitta detta värde i artikeln
+                stop_flag = true
+                break
+            elseif step_size[param_index] < 1e-6
+                step_size[param_index] = 1e-6
+                stop_flag = true
+                break
+            end
+            cond_val = abs(f(log.(param_last + sign * step_size)) - f(log.(param_last)) - q * threshold)
         end
-        step_size[param_index] /= 2
+    elseif cond_val <= abstol + reltol * f(log.(param_last))
+        while cond_val <= abstol + reltol * f(log.(param_last))
+            step_size[param_index] *= 2
+            if f(log.(param_last + sign * step_size)) > f(log.(params)) * 1.2 # försök hitta detta värde i artikeln
+                stop_flag = true
+                break
+            elseif step_size[param_index] > 2.0 * param_last[param_index]
+                step_size[param_index] = 2.0 * param_last[param_index]
+                stop_flag = true
+                break
+            end
+            cond_val = abs(f(log.(param_last + sign * step_size)) - f(log.(param_last)) - q * threshold)
+        end
     end
     new_point = param_last + sign * step_size
 
@@ -167,8 +174,7 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
         costfunction_values = pl_res.costfunc_value_list
 
         #plot
-        plot(fixed_parameter, costfunction_values, title="Profile likelihood parameter $i",
-            xaxis="Parameter $i", yaxis="Cost function values")
+        plot(fixed_parameter, costfunction_values, xaxis="Parameter $i", yaxis="Cost function values")
 
         #save plot
         savefig("profilelikelihood_results/parameter$i.png")
@@ -176,7 +182,7 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 end
 
 # Define the initial parameter values
-params = [1, 0.5, 1.5, 2]
+params = [1, 0.5, 3.0, 10.0]
 
 # Perform profile likelihood analysis for each parameter
 num_points = 10
