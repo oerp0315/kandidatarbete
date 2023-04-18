@@ -1,33 +1,40 @@
 include("newton_minimize.jl")
 include("model_easy.jl")
 
-function new_point(param_last, param_index, bounds, sign, threshold; q=0.1)
+function new_point(log_param_last, log_params, param_index, bounds, sign, threshold; q=0.1, abstol=1e-2, reltol=1e-2)
     stop_flag = false
-    step_size = zeros(length(param_last))
-    step_size[param_index] = 1e-3 * param_last[param_index] #ändra värdet ev
-    for i in 1:50
-        if step_size[param_index] < 1e-6
-            step_size[param_index] = 1e-6
-            stop_flag = true
-            break
-        elseif step_size[param_index] > 2.0 * param_last[param_index]
-            step_size[param_index] = 2.0 * param_last[param_index]
-            stop_flag = true
-            break
-        elseif f(log.(param_last + sign * step_size)) == Inf
-            continue
-        elseif abs(f(log.(param_last + sign * step_size)) - f(log.(param_last)) - q * threshold) > 1
-            stop_flag = true
-            break
-        elseif f(log.(param_last + sign * step_size)) > f(log.(params)) * 1.1 #försök hitta detta värde i artikeln
-            stop_flag = true
-            break
-        elseif abs(f(log.(param_last + sign * step_size)) - f(log.(param_last))) < 1e-3
-            step_size[param_index] *= 4 #det blir *2 i slutänden
+    step_size = zeros(length(log_param_last))
+    step_size[param_index] = 1e-3 * log_param_last[param_index] #ändra värdet ev
+    cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last) - q * threshold)
+
+    if f(log_param_last + sign * step_size) == Inf || cond_val > abstol + reltol * f(log_param_last)
+        while f(log_param_last + sign * step_size) == Inf || cond_val > abstol + reltol * f(log_param_last)
+            step_size[param_index] /= 2
+            if f(log_param_last + sign * step_size) > f(log_params) * 1.2 # försök hitta detta värde i artikeln
+                stop_flag = true
+                break
+            elseif step_size[param_index] < 1e-6
+                step_size[param_index] = 1e-6
+                stop_flag = true
+                break
+            end
+            cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last) - q * threshold)
         end
-        step_size[param_index] /= 2
+    elseif cond_val <= abstol + reltol * f(log_param_last)
+        while cond_val <= abstol + reltol * f(log_param_last)
+            step_size[param_index] *= 2
+            if f(log_param_last + sign * step_size) > f(log_params) * 1.2 # försök hitta detta värde i artikeln
+                stop_flag = true
+                break
+            elseif step_size[param_index] > 2.0 * log_param_last[param_index]
+                step_size[param_index] = 2.0 * log_param_last[param_index]
+                stop_flag = true
+                break
+            end
+            cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last) - q * threshold)
+        end
     end
-    new_point = param_last + sign * step_size
+    new_point = log_param_last + sign * step_size
 
     # point can not be outside of bounds
     if sign == -1
@@ -64,9 +71,11 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
     # list of indexes to be optimized
     index_list = [i for i in 1:length(bounds) if i != param_index]
 
-    bounds_ = copy(bounds)
+    # log-scale parameters
+    log_params = log.(params)
 
     # new bounds
+    bounds_ = copy(bounds)
     current_bounds = deleteat!(bounds_, param_index)
 
     # new start values
@@ -87,43 +96,43 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
     # log optimized parameters (start values)
     fix_param_index[Int(num_points)+1] = param_index
-    fix_param_list[Int(num_points)+1] = params[param_index]
-    x_list[Int(num_points)+1] = params
-    costfunc_value_list[Int(num_points)+1] = f(log.(params))
+    fix_param_list[Int(num_points)+1] = exp.(log_params[param_index])
+    x_list[Int(num_points)+1] = exp.(log_params)
+    costfunc_value_list[Int(num_points)+1] = f(log_params)
 
     i = 0
-    params_current = params
+    log_params_current = log_params
 
     while i < num_points
         i += 1
 
         if stop_flag == false && i != num_points
             # calculate next point
-            params_current, stop_flag = new_point(params_current, param_index, bounds, sign, threshold)
+            log_params_current, stop_flag = new_point(log_params_current, log_params, param_index, bounds, sign, threshold)
 
         elseif (i == num_points && sign == -1 && !(stop_flag == true)) || (!(i == num_points) && sign == -1 && stop_flag == true)  # kanske behöver kollas över
             sign = 1
             i = 1
-            params_current = params
-            params_current, stop_flag = new_point(params_current, param_index, bounds, sign, threshold)
+            log_params_current = log_params
+            log_params_current, stop_flag = new_point(log_params_current, log_params, param_index, bounds, sign, threshold)
         else
             break
         end
 
         # Omdefinera kostfuntionen
-        cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, params_current)
+        cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, log_params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest
         x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true, new_x_samples_log)
 
         if sign == -1
             fix_param_index[Int(num_points)+1-i] = param_index
-            fix_param_list[Int(num_points)+1-i] = params_current[param_index]
+            fix_param_list[Int(num_points)+1-i] = exp.(log_params_current[param_index])
             x_list[Int(num_points)+1-i] = x_min
             costfunc_value_list[Int(num_points)+1-i] = f_min
         else
             fix_param_index[Int(num_points)+1+i] = param_index
-            fix_param_list[Int(num_points)+1+i] = params_current[param_index]
+            fix_param_list[Int(num_points)+1+i] = exp.(log_params_current[param_index])
             x_list[Int(num_points)+1+i] = x_min
             costfunc_value_list[Int(num_points)+1+i] = f_min
         end
@@ -167,8 +176,7 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
         costfunction_values = pl_res.costfunc_value_list
 
         #plot
-        plot(fixed_parameter, costfunction_values, title="Profile likelihood parameter $i",
-            xaxis="Parameter $i", yaxis="Cost function values")
+        plot(fixed_parameter, costfunction_values, xaxis="Parameter $i", yaxis="Cost function values")
 
         #save plot
         savefig("profilelikelihood_results/parameter$i.png")
@@ -176,7 +184,7 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 end
 
 # Define the initial parameter values
-params = [1, 0.5, 1.5, 2]
+params = [1, 0.5, 3.0, 10.0]
 
 # Perform profile likelihood analysis for each parameter
 num_points = 10

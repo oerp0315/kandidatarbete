@@ -28,23 +28,37 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
     return alpha, is_descent_direction
 end
 
-function newton_method(f::Function, grad, hess, x)
+function newton_method(f::Function, grad, hess, x, log_bounds)
     dir = -hess \ grad
     alpha, is_descent_direction = line_step_search(f, x, dir)
 
     if is_descent_direction
         x += alpha * dir
+        for i in eachindex(log_bounds)
+            if x[i] < log_bounds[i][1]
+                x[i] = log_bounds[i][1]
+            elseif x[i] > log_bounds[i][2]
+                x[i] = log_bounds[i][2]
+            end
+        end
     end
 
     return x, is_descent_direction
 end
 
-function steepest_descent(f::Function, grad, x)
+function steepest_descent(f::Function, grad, x, log_bounds)
     dir = -grad / norm(grad)
     alpha, is_descent_direction = line_step_search(f, x, dir)
 
     if is_descent_direction
         x += alpha * dir
+        for i in eachindex(log_bounds)
+            if x[i] < log_bounds[i][1]
+                x[i] = log_bounds[i][1]
+            elseif x[i] > log_bounds[i][2]
+                x[i] = log_bounds[i][2]
+            end
+        end
     end
 
     return x, is_descent_direction
@@ -95,7 +109,7 @@ function latin_hypercube(n_samples, bounds; seed=123)
             end
         end
 
-        # scale samples to bounds
+        # scale samples to bounds.
         for i in 1:n_samples
             for j in 1:n_vars
                 samples[i, j] = (bounds[j][2] - bounds[j][1]) * samples[i, j] + bounds[j][1]
@@ -142,7 +156,7 @@ struct log_results
     time_log::Vector{Float64}
 end
 
-function opt(f::Function, x, sample_num, iter; max_iter=1000)
+function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     # initiate lists for logging results
     sample_num_list::Vector{Int64} = zeros(max_iter + 1)
     x_current_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(max_iter + 1)
@@ -194,13 +208,13 @@ function opt(f::Function, x, sample_num, iter; max_iter=1000)
 
         # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
         if isposdef(hess)
-            x, is_descent_direction = newton_method(f, grad, hess, x)
+            x, is_descent_direction = newton_method(f, grad, hess, x, log_bounds)
             #logging the used descent method
             push!(current_descent_method, "Newton method")
         end
 
         if !is_descent_direction
-            x, is_descent_direction = steepest_descent(f, grad, x)
+            x, is_descent_direction = steepest_descent(f, grad, x, log_bounds)
             #logging the used descent method
             push!(current_descent_method, "Steepest descent")
 
@@ -291,6 +305,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
         x_samples_log = log.(x_samples)
     end
 
+    log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
     # if the gradient is not good enough the program will terminate
     check_gradient(f, x_samples_log[1, :])
 
@@ -308,7 +323,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
         sample_num += 1
 
         # minimizes the cost function for the current start-guess
-        res, iter, x = opt(f::Function, x, sample_num, iter)
+        res, iter, x = opt(f::Function, x, sample_num, iter, log_bounds)
 
         if pl_mode == false
             data = DataFrame(Samplepoint=res.sample_num_list,
