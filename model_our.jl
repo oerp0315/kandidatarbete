@@ -247,6 +247,11 @@ function model_solver(_problem_object, θin, c0, t_stop)
     return solution
 end
 
+function pre_equlibrate(problem_object)
+    sol = model_solver(problem_object, θeq, 120)
+    return c_eq
+end
+
 # Skriv om!!
 "Calculate difference between experiments and model"
 function cost_function(problem_object, logθ, experimental_data::AbstractVector)
@@ -255,7 +260,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector)
       for experiment in experimental_data
         # Fixa pre equilibrium!!!!!!!
         #if θ is in
-        sol = model_solver(problem_object, θeq, 120) #All have end time 120
+        sol = model_solver(problem_object, c_eq, 120) #All have end time 120
 
         for (index_time, t) in enumerate(experiment.t)
             # Beräkna modellens koncentrationer av HXT generna
@@ -274,6 +279,13 @@ function interpolate(t, t_1, t_2, f_1, f_2)
     return f_1 + (t-t_1) * (f_1 -f_2)/(t_1-t_2)
 end
 
+function CSV_storer(time, model_conc, labels)
+    model_data = DataFrame(hcat(time,model_conc),:auto)
+    rename!(model_data, 2:25 .=> labels)
+    rename!(model_data, 1 .=> "Time" )
+    CSV.write("kinetic_data.csv", model_data)
+end
+
 c0 = zeros(24)
 θin = ones(12)
 problem_object, system = model_initialize()
@@ -283,17 +295,13 @@ solution = model_solver(problem_object, θin, c0, 500)
 time= reshape(solution.t, length(solution.t), 1)
 model_conc = transpose(Matrix(solution))
 labels = string.(states(system))
-labels = reshape(labels, 1, length(labels))
+labels_matrix = reshape(labels, 1, length(labels))
 
-plot(solution.t, model_conc, label=labels, linewidth = 2)
+plot(solution.t, model_conc, label=labels_matrix, linewidth = 2)
+#plot(solution.t,mo)
 #plot!(legend=:outerbottom, legendcolumn=3)
 savefig("kinetikfil.png")
 
 
-foo = DataFrame(hcat(time,model_conc),:auto)
-rename!(foo, 2:25 .=> labels)
-rename!(foo,1 .=> "Time" )
-CSV.write("kinetic_data.csv",foo)
-
-
+CSV_storer(time, model_conc, labels)
 
