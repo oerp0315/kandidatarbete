@@ -1,36 +1,41 @@
 include("newton_minimize.jl")
 include("model_easy.jl")
 
-function new_point(log_param_last, log_params, param_index, bounds, sign, threshold; q=0.1, abstol=1e-2, reltol=1e-2)
+function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; q=1e-3, abstol=1e-2, reltol=1e-2)
     stop_flag = false
     step_size = zeros(length(log_param_last))
     step_size[param_index] = 1e-3 * log_param_last[param_index] #ändra värdet ev
+    if step_size[param_index] < 0
+        step_size[param_index] = -step_size[param_index]
+    end
     cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last) - q * threshold)
 
     if f(log_param_last + sign * step_size) == Inf || cond_val > abstol + reltol * f(log_param_last)
         while f(log_param_last + sign * step_size) == Inf || cond_val > abstol + reltol * f(log_param_last)
             step_size[param_index] /= 2
-            if f(log_param_last + sign * step_size) > f(log_params) * 1.2 # försök hitta detta värde i artikeln
+            println("i am stuck here")
+            """if f(log_param_last + sign * step_size) > f(log_params) * 1.2 # försök hitta detta värde i artikeln
                 stop_flag = true
                 break
             elseif step_size[param_index] < 1e-6
                 step_size[param_index] = 1e-6
                 stop_flag = true
                 break
-            end
+            end"""
             cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last) - q * threshold)
         end
     elseif cond_val <= abstol + reltol * f(log_param_last)
         while cond_val <= abstol + reltol * f(log_param_last)
             step_size[param_index] *= 2
-            if f(log_param_last + sign * step_size) > f(log_params) * 1.2 # försök hitta detta värde i artikeln
+            println("i am stuck here now instead")
+            """if f(log_param_last + sign * step_size) > f(log_params) * 1.2 # försök hitta detta värde i artikeln
                 stop_flag = true
                 break
             elseif step_size[param_index] > 2.0 * log_param_last[param_index]
                 step_size[param_index] = 2.0 * log_param_last[param_index]
                 stop_flag = true
                 break
-            end
+            end"""
             cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last) - q * threshold)
         end
     end
@@ -38,13 +43,13 @@ function new_point(log_param_last, log_params, param_index, bounds, sign, thresh
 
     # point can not be outside of bounds
     if sign == -1
-        if new_point[param_index] < bounds[param_index][1]
-            new_point[param_index] = bounds[param_index][1]
+        if new_point[param_index] < log_bounds[param_index][1]
+            new_point[param_index] = log_bounds[param_index][1]
             stop_flag = true
         end
     elseif sign == 1
-        if new_point[param_index] > bounds[param_index][2]
-            new_point[param_index] = bounds[param_index][2]
+        if new_point[param_index] > log_bounds[param_index][2]
+            new_point[param_index] = log_bounds[param_index][2]
             stop_flag = true
         end
     end
@@ -74,6 +79,9 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
     # log-scale parameters
     log_params = log.(params)
 
+    # log-scale bounds
+    log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
+
     # new bounds
     bounds_ = copy(bounds)
     current_bounds = deleteat!(bounds_, param_index)
@@ -96,9 +104,9 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
     # log optimized parameters (start values)
     fix_param_index[Int(num_points)+1] = param_index
-    fix_param_list[Int(num_points)+1] = exp.(log_params[param_index])
-    x_list[Int(num_points)+1] = exp.(log_params)
-    costfunc_value_list[Int(num_points)+1] = f(log_params)
+    fix_param_list[Int(num_points)+1] = x_min[param_index]
+    x_list[Int(num_points)+1] = [x_min[i] for i in eachindex(x_min) if i != param_index]
+    costfunc_value_list[Int(num_points)+1] = f_min
 
     i = 0
     log_params_current = log_params
@@ -108,13 +116,13 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
         if stop_flag == false && i != num_points
             # calculate next point
-            log_params_current, stop_flag = new_point(log_params_current, log_params, param_index, bounds, sign, threshold)
+            log_params_current, stop_flag = new_point(log_params_current, log_params, param_index, log_bounds, sign, threshold)
 
         elseif (i == num_points && sign == -1 && !(stop_flag == true)) || (!(i == num_points) && sign == -1 && stop_flag == true)  # kanske behöver kollas över
             sign = 1
             i = 1
             log_params_current = log_params
-            log_params_current, stop_flag = new_point(log_params_current, log_params, param_index, bounds, sign, threshold)
+            log_params_current, stop_flag = new_point(log_params_current, log_params, param_index, log_bounds, sign, threshold)
         else
             break
         end
@@ -184,7 +192,7 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 end
 
 # Define the initial parameter values
-params = [1, 0.5, 3.0, 10.0]
+params = x_min
 
 # Perform profile likelihood analysis for each parameter
 num_points = 10
