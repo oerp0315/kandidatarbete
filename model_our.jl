@@ -6,6 +6,7 @@ using Distributions
 using DataFrames
 using CSV
 
+
 println("Nu kör vi!!!")
 
 # Skriv om
@@ -247,20 +248,49 @@ function model_solver(_problem_object, θin, c0, t_stop)
     return solution
 end
 
-function pre_equlibrate(problem_object)
-    sol = model_solver(problem_object, θeq, 120)
-    return c_eq
+function terminate_affect!(integrator)
+    terminate!(integrator)
 end
+
+function terminate_condition(u, t, integrator)
+    abstol=1e-8 /100
+    reltol=1e-8 /100
+
+    dudt = DiffEqBase.get_du(integrator)
+    valCheck = sqrt(sum( (dudt ./ (reltol*integrator.u .+ abstol)).^2) / length(u))
+    return valCheck < 1.0
+end
+
+# pre_equlibrate(problem_object, θin)
+# Kör tills derivatan är tillräckligt liten eller max tid har gått
+function pre_equlibrate(_problem_object, θin)
+    c0 = zeros(24)
+    t_maximum = 10000 #Maximala tid att nå maximum
+    problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)
+    
+    cb = DiscreteCallback(terminate_condition, terminate_affect!)
+
+    solution = solve(problem_object, callback = cb, Rodas5P(), abstol=1e-8, reltol=1e-8)
+    println(solution.t[end])
+    if solution.t == t_maximum
+        @warn "Lyckades inte nå jämnvikt i pre_equilibrium"
+    end
+    return solution.u[end]
+end
+
+
 
 # Skriv om!!
 "Calculate difference between experiments and model"
 function cost_function(problem_object, logθ, experimental_data::AbstractVector)
-      θ = exp.(logθ)
-      error = 0
-      for experiment in experimental_data
-        # Fixa pre equilibrium!!!!!!!
-        #if θ is in
-        sol = model_solver(problem_object, c_eq, 120) #All have end time 120
+    θ = exp.(logθ)
+    error = 0
+    c_eq = pre_equilibrate2(problem_obect, θ)
+
+    for experiment in experimental_data
+        θ[1] = FIXA HÄR!!!
+
+        sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
 
         for (index_time, t) in enumerate(experiment.t)
             # Beräkna modellens koncentrationer av HXT generna
