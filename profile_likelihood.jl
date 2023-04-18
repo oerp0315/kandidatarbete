@@ -13,7 +13,6 @@ function new_point(log_param_last, log_params, param_index, log_bounds, sign, th
     if f(log_param_last + sign * step_size) == Inf || cond_val > abstol + reltol * f(log_param_last)
         while f(log_param_last + sign * step_size) == Inf || cond_val > abstol + reltol * f(log_param_last)
             step_size[param_index] /= 2
-            println("i am stuck here")
             """if f(log_param_last + sign * step_size) > f(log_params) * 1.2 # försök hitta detta värde i artikeln
                 stop_flag = true
                 break
@@ -27,7 +26,6 @@ function new_point(log_param_last, log_params, param_index, log_bounds, sign, th
     elseif cond_val <= abstol + reltol * f(log_param_last)
         while cond_val <= abstol + reltol * f(log_param_last)
             step_size[param_index] *= 2
-            println("i am stuck here now instead")
             """if f(log_param_last + sign * step_size) > f(log_params) * 1.2 # försök hitta detta värde i artikeln
                 stop_flag = true
                 break
