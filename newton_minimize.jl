@@ -6,7 +6,6 @@ using Random
 using CSV
 using DataFrames
 using DelimitedFiles
-include("generall_kinetics.jl")
 include("model_easy.jl")
 
 function line_step_search(f::Function, x, dir; alpha=1.0)
@@ -363,7 +362,7 @@ end
 f(x) = cost_function(problem_object, x, experimental_data)
 
 # Define bounds
-bounds = [(0.1, 11), (0.1, 11), (0.1, 11), (0.1, 11)]
+bounds = [(0.1, 6), (0.1, 6)]
 
 
 x_min, f_min = p_est(f, bounds, 10, false, 0)

@@ -37,6 +37,37 @@ function model_4p_initialize()
     return problem_object
 end
 
+"Function to construct model"
+function model_2p_v2_initialize()
+    @parameters t θ[1:2]     #Parametrar i modellen
+    @variables c1(t) c2(t) c3(t)   #Variabler i modellen
+    D = Differential(t) #Definierar tecken för derivata
+
+    k = [0.5, 10]
+
+    equation_system = [D(c1) ~ -θ[1] * c1 + k[1] * c2,
+        D(c2) ~ θ[1] * c1 - k[1] * c2 - θ[2] * c2 + k[2] * c3,
+        D(c3) ~ θ[2] * c2 - k[2] * c3]  #Uttryck för systemet som diffrentialekvationer
+
+    @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
+    system = structural_simplify(system) #Skriver om systemet så det blir lösbart
+
+    # Intialvärden som kommer skrivas över
+    c0 = [0, 0, 0]
+    θin = [0, 0]
+
+    u0 = [c1 => c0[1],
+        c2 => c0[2],
+        c3 => c0[3]] #Definierar initialvärden
+
+    p = [θ[1] => θin[1],
+        θ[2] => θin[2]] #Definierar värden för parametrarna
+
+    tspan = (0.0, 10) #Tiden vi kör modellen under
+    problem_object = ODEProblem(system, u0, tspan, p, jac=true)  #Definierar vad som ska beräknas
+    return problem_object
+end
+
 function model_2p_initialize()
     @parameters t θ[1:2]     #Parametrar i modellen
     @variables c1(t) c2(t)   #Variabler i modellen
@@ -141,8 +172,8 @@ function plot_experiment(experimental_data)
     savefig("exp_data.png")
 end
 
-problem_object = model_4p_initialize()
-experimental_data = random_dataset_generator(problem_object, 10, [1 0.5 3 10])
+problem_object = model_2p_v2_initialize()
+experimental_data = random_dataset_generator(problem_object, 10, [1.0, 3.0])
 
 #plot_exact_example(problem_object, [1 0.5 3 10])
 #plot_experiment(experimental_data)
