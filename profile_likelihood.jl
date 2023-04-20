@@ -3,7 +3,7 @@ include("newton_minimize.jl")
 function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; abstol=1e-5, reltol=1e-2)
     stop_flag = false
     step_size = zeros(length(log_param_last))
-    step_size[param_index] = log_param_last[param_index] #ändra värdet ev
+    step_size[param_index] = log_param_last[param_index]
     if step_size[param_index] < 0
         step_size[param_index] = -step_size[param_index]
     end
@@ -12,10 +12,7 @@ function new_point(log_param_last, log_params, param_index, log_bounds, sign, th
     if f(log_param_last + sign * step_size) == Inf || cond_val > abstol + reltol * f(log_param_last)
         while f(log_param_last + sign * step_size) == Inf || cond_val > abstol + reltol * f(log_param_last)
             step_size[param_index] /= 2
-            if f(log_param_last + sign * step_size) > f(log_params) * 1.2
-                stop_flag = true
-                break
-            elseif step_size[param_index] < 1e-6
+            if step_size[param_index] < 1e-6
                 step_size[param_index] = 1e-6
                 stop_flag = true
                 break
@@ -25,10 +22,7 @@ function new_point(log_param_last, log_params, param_index, log_bounds, sign, th
     elseif cond_val <= abstol + reltol * f(log_param_last)
         while cond_val <= abstol + reltol * f(log_param_last)
             step_size[param_index] *= 2
-            if f(log_param_last + sign * step_size) > f(log_params) * 1.2
-                stop_flag = true
-                break
-            elseif step_size[param_index] > 2.0 * log_param_last[param_index]
+            if step_size[param_index] > 2.0 * log_param_last[param_index]
                 step_size[param_index] = 2.0 * log_param_last[param_index]
                 stop_flag = true
                 break
@@ -140,6 +134,10 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
             fix_param_list[Int(num_points)+1+i] = exp.(log_params_current[param_index])
             x_list[Int(num_points)+1+i] = x_min
             costfunc_value_list[Int(num_points)+1+i] = f_min
+        end
+
+        if f_min > f(log_params) * 1.2
+            stop_flag = true
         end
     end
 
