@@ -1,6 +1,6 @@
 include("newton_minimize.jl")
 
-function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; abstol=1e-5, reltol=1e-2)
+function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; abstol=1e-6, reltol=1e-2)
     stop_flag = false
     step_size = zeros(length(log_param_last))
     step_size[param_index] = log_param_last[param_index]
