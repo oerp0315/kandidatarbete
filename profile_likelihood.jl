@@ -28,6 +28,10 @@ function new_point(log_param_last, log_params, param_index, log_bounds, sign, th
                 break
             end
             cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last))
+            if cond_val > abstol + reltol * f(log_param_last)
+                step_size[param_index] /= 2
+                break
+            end
         end
     end
     new_point = log_param_last + sign * step_size
