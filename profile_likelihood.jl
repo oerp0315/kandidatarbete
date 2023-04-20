@@ -1,9 +1,9 @@
 include("newton_minimize.jl")
 
-function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; abstol=1e-6, reltol=1e-2)
+function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; abstol=1e-7, reltol=1e-3)
     stop_flag = false
     step_size = zeros(length(log_param_last))
-    step_size[param_index] = log_param_last[param_index]
+    step_size[param_index] = 1e-3 * log_param_last[param_index]
     if step_size[param_index] < 0
         step_size[param_index] = -step_size[param_index]
     end
@@ -22,11 +22,6 @@ function new_point(log_param_last, log_params, param_index, log_bounds, sign, th
     elseif cond_val <= abstol + reltol * f(log_param_last)
         while cond_val <= abstol + reltol * f(log_param_last)
             step_size[param_index] *= 2
-            if step_size[param_index] > 2.0 * log_param_last[param_index]
-                step_size[param_index] = 2.0 * log_param_last[param_index]
-                stop_flag = true
-                break
-            end
             cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last))
             if cond_val > abstol + reltol * f(log_param_last)
                 step_size[param_index] /= 2
