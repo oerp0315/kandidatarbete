@@ -1,6 +1,6 @@
 include("newton_minimize.jl")
 
-function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; abstol=1e-7, reltol=1e-3)
+function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; abstol=1e-5, reltol=1e-2)
     stop_flag = false
     step_size = zeros(length(log_param_last))
     step_size[param_index] = 1e-3 * log_param_last[param_index]
@@ -178,7 +178,7 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
         costfunction_values = pl_res.costfunc_value_list
 
         #plot
-        plot(fixed_parameter, costfunction_values, xaxis="Parameter $i", yaxis="Cost function values")
+        plot(fixed_parameter, costfunction_values, linecolor=[:blue4], xaxis="Parameter $i", yaxis="Cost function values", legend=false)
 
         #save plot
         savefig("profilelikelihood_results/parameter$i.png")
