@@ -1,6 +1,6 @@
 include("newton_minimize.jl")
 
-function new_point(log_param_last, log_params, param_index, log_bounds, sign, threshold; abstol=1e-5, reltol=1e-2)
+function new_point(log_param_last, param_index, log_bounds, sign, threshold; abstol=1e-5, reltol=1e-2)
     stop_flag = false
     step_size = zeros(length(log_param_last))
     step_size[param_index] = 1e-3 * log_param_last[param_index]
@@ -106,13 +106,13 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
         if stop_flag == false && i != num_points
             # calculate next point
-            log_params_current, stop_flag = new_point(log_params_current, log_params, param_index, log_bounds, sign, threshold)
+            log_params_current, stop_flag = new_point(log_params_current, param_index, log_bounds, sign, threshold)
 
         elseif (i == num_points && sign == -1 && !(stop_flag == true)) || (!(i == num_points) && sign == -1 && stop_flag == true)  # kanske behöver kollas över
             sign = 1
             i = 1
             log_params_current = log_params
-            log_params_current, stop_flag = new_point(log_params_current, log_params, param_index, log_bounds, sign, threshold)
+            log_params_current, stop_flag = new_point(log_params_current, param_index, log_bounds, sign, threshold)
         else
             break
         end
@@ -178,7 +178,12 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
         costfunction_values = pl_res.costfunc_value_list
 
         #plot
-        plot(fixed_parameter, costfunction_values, linecolor=[:blue4], xaxis="Parameter $i", yaxis="Cost function values", legend=false)
+        plot(fixed_parameter, costfunction_values, xaxis="Parameter $i", yaxis="Cost function values", legend=false, lc=:black, lw=3)
+
+        # plot threshold
+        x = collect(Float64, range(pl_res.fix_param_list[1], pl_res.fix_param_list[end], length=2))
+        y = 1.2 * f(log.(params)) * ones(length(x))
+        plot!(x, y, lc=:black, linestyle=:dash, lw=2)
 
         #save plot
         savefig("profilelikelihood_results/parameter$i.png")
