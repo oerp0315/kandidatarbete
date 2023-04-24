@@ -1,10 +1,17 @@
 include("newton_minimize.jl")
 
-#finding the next point
-function new_point(log_param_last, param_index, log_bounds, sign, threshold; abstol=1e-5, reltol=1e-2)
+"Determines the next point in the profiling of the cost function"
+function new_point(log_param_last, param_index, log_bounds, sign; abstol=1e-5, reltol=1e-2)
     stop_flag = false
+
+    # initiate step size vector
     step_size = zeros(length(log_param_last))
+
+    # initiate step size of parameter of interest
     step_size[param_index] = 1e-3 * log_param_last[param_index]
+
+    # since step_size[param_index] can be negative, this expression ensures that 
+    # step_size[param_index] is always positive
     if step_size[param_index] < 0
         step_size[param_index] = -step_size[param_index]
     end
@@ -63,7 +70,7 @@ struct log_pl_results
 end
 
 # Define the function to perform profile likelihood analysis for one parameter
-function profile_likelihood(params, param_index, bounds, num_points, threshold)
+function profile_likelihood(params, param_index, bounds, num_points)
     # list of indexes to be optimized
     index_list = [i for i in 1:length(bounds) if i != param_index]
 
@@ -107,13 +114,13 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
 
         if stop_flag == false && i != num_points
             # calculate next point
-            log_params_current, stop_flag = new_point(log_params_current, param_index, log_bounds, sign, threshold)
+            log_params_current, stop_flag = new_point(log_params_current, param_index, log_bounds, sign)
 
         elseif (i == num_points && sign == -1 && !(stop_flag == true)) || (!(i == num_points) && sign == -1 && stop_flag == true)
             sign = 1
             i = 1
             log_params_current = log_params
-            log_params_current, stop_flag = new_point(log_params_current, param_index, log_bounds, sign, threshold)
+            log_params_current, stop_flag = new_point(log_params_current, param_index, log_bounds, sign)
         else
             break
         end
@@ -150,7 +157,7 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
     return pl_res
 end
 
-function run_profile_likelihood(params, bounds, num_points, threshold)
+function run_profile_likelihood(params, bounds, num_points)
     # create a directory for profile likelihood
     if isdir("profilelikelihood_results") == false
         mkdir("profilelikelihood_results")
@@ -164,7 +171,7 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
     end
 
     for i in 1:length(bounds)
-        pl_res = profile_likelihood(params, i, bounds, num_points, threshold)
+        pl_res = profile_likelihood(params, i, bounds, num_points)
 
         data = DataFrame(Fixed_parameter_index=pl_res.fix_param_index,
             Fixed_parameter=pl_res.fix_param_list,
@@ -226,8 +233,7 @@ params = x_min
 
 # Perform profile likelihood analysis for each parameter
 num_points = 100
-threshold = 3.81 # For 95% confidence interval
 
-run_profile_likelihood(params, bounds, num_points, threshold)
+run_profile_likelihood(params, bounds, num_points)
 
 #contourplot_2p()
