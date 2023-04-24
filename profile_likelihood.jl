@@ -1,5 +1,6 @@
 include("newton_minimize.jl")
 
+#finding the next point
 function new_point(log_param_last, param_index, log_bounds, sign, threshold; abstol=1e-5, reltol=1e-2)
     stop_flag = false
     step_size = zeros(length(log_param_last))
@@ -108,7 +109,7 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
             # calculate next point
             log_params_current, stop_flag = new_point(log_params_current, param_index, log_bounds, sign, threshold)
 
-        elseif (i == num_points && sign == -1 && !(stop_flag == true)) || (!(i == num_points) && sign == -1 && stop_flag == true)  # kanske behöver kollas över
+        elseif (i == num_points && sign == -1 && !(stop_flag == true)) || (!(i == num_points) && sign == -1 && stop_flag == true)
             sign = 1
             i = 1
             log_params_current = log_params
@@ -117,7 +118,7 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
             break
         end
 
-        # Omdefinera kostfuntionen
+        # Redefine the cost function
         cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, log_params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest

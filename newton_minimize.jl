@@ -8,12 +8,13 @@ using DataFrames
 using DelimitedFiles
 include("model_easy.jl")
 
+#finding the step size used to find the next point
 function line_step_search(f::Function, x, dir; alpha=1.0)
     is_descent_direction::Bool = true
     for i in 1:50
         x_new = x + alpha * dir
         if f(x_new) == Inf
-            alpha /= 2
+            alpha /= 2 
             continue
         elseif f(x_new) < f(x) && i != 50
             break
@@ -27,6 +28,7 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
     return alpha, is_descent_direction
 end
 
+#Newton method used to find a point in a descending direction
 function newton_method(f::Function, grad, hess, x, log_bounds)
     dir = -hess \ grad
     alpha, is_descent_direction = line_step_search(f, x, dir)
@@ -45,6 +47,7 @@ function newton_method(f::Function, grad, hess, x, log_bounds)
     return x, is_descent_direction
 end
 
+#Alternative method to find a point in a descending direction
 function steepest_descent(f::Function, grad, x, log_bounds)
     dir = -grad / norm(grad)
     alpha, is_descent_direction = line_step_search(f, x, dir)
@@ -253,6 +256,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         descent_method[i+1] = current_descent_method
         cond_num_list[i+1] = cond_num
 
+        # Checks if two or more of the termination criteria are met
         if length(current_term_criteria) >= 2
             term_reason[i+1] = "Two or more termination criteria was met"
             break
@@ -324,6 +328,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
         # minimizes the cost function for the current start-guess
         res, iter, x = opt(f::Function, x, sample_num, iter, log_bounds)
 
+        # Only necessary if Profile likelihood is not currently used
         if pl_mode == false
             data = DataFrame(Samplepoint=res.sample_num_list,
                 Currentsample=res.x_current_sample_list,
