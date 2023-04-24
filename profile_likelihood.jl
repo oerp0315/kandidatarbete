@@ -10,8 +10,8 @@ function new_point(log_param_last, param_index, log_bounds, sign; abstol=1e-5, r
     # initiate step size of parameter of interest
     step_size[param_index] = 1e-3 * log_param_last[param_index]
 
-    # since step_size[param_index] can be negative, this expression ensures that 
-    # step_size[param_index] is always positive
+    #= since step_size[param_index] can be negative, this expression ensures that 
+    step_size[param_index] is always positive =#
     if step_size[param_index] < 0
         step_size[param_index] = -step_size[param_index]
     end
@@ -55,6 +55,7 @@ function new_point(log_param_last, param_index, log_bounds, sign; abstol=1e-5, r
     return new_point, stop_flag
 end
 
+"Returns a cost function only dependent on indexes gives in index_x_small, other variables are held constant"
 function intermediate_cost_function(x_small, index_x_small, x_big)
     x_big_ = convert.(eltype(x_small), x_big)
     x_big_[index_x_small] .= x_small
@@ -62,6 +63,7 @@ function intermediate_cost_function(x_small, index_x_small, x_big)
     return cost_function(problem_object, x_big_, experimental_data)
 end
 
+# struct for logging results from profile likelihood
 struct log_pl_results
     fix_param_index::Vector{Int64}
     fix_param_list::Vector{Float64}
@@ -69,7 +71,7 @@ struct log_pl_results
     costfunc_value_list::Vector{Float64}
 end
 
-# Define the function to perform profile likelihood analysis for one parameter
+"Perform profile likelihood analysis for one parameter"
 function profile_likelihood(params, param_index, bounds, num_points)
     # list of indexes to be optimized
     index_list = [i for i in 1:length(bounds) if i != param_index]
@@ -87,11 +89,15 @@ function profile_likelihood(params, param_index, bounds, num_points)
     # new start values
     x_samples = readdlm("p_est_results/latin_hypercube.csv", Float64)
 
+    # remove the bound at the index of the parameter that is profiled
     new_x_samples = hcat(x_samples[:, 1:param_index-1], x_samples[:, param_index+1:end])
 
+    # log-scale samples 
     new_x_samples_log = log.(new_x_samples)
 
     stop_flag = false
+
+    # begin profiling in negative direction
     sign = -1
 
     # initiate lists for logging
@@ -112,6 +118,9 @@ function profile_likelihood(params, param_index, bounds, num_points)
     while i < num_points
         i += 1
 
+        #= continue to profile in the current direction if stop_flag is not true and maximum steps (num_points) 
+        in that direction is not taken, else change direction. If profiling has been done in both directions
+        break the code =#
         if stop_flag == false && i != num_points
             # calculate next point
             log_params_current, stop_flag = new_point(log_params_current, param_index, log_bounds, sign)
@@ -129,8 +138,9 @@ function profile_likelihood(params, param_index, bounds, num_points)
         cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, log_params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest
-        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true, new_x_samples_log)
+        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true; x_samples_log=new_x_samples_log)
 
+        # update logging lists with results
         if sign == -1
             fix_param_index[Int(num_points)+1-i] = param_index
             fix_param_list[Int(num_points)+1-i] = exp.(log_params_current[param_index])
@@ -143,6 +153,7 @@ function profile_likelihood(params, param_index, bounds, num_points)
             costfunc_value_list[Int(num_points)+1+i] = f_min
         end
 
+        # function value should not exceed a specific percentage of the starting point of profile profile_likelihood
         if f_min > f(log_params) * 1.2
             stop_flag = true
         end
@@ -157,6 +168,8 @@ function profile_likelihood(params, param_index, bounds, num_points)
     return pl_res
 end
 
+"Run profile likelihood with the optimized parameters params, specifying how many steps can 
+maximally be made in each direction"
 function run_profile_likelihood(params, bounds, num_points)
     # create a directory for profile likelihood
     if isdir("profilelikelihood_results") == false
@@ -170,9 +183,12 @@ function run_profile_likelihood(params, bounds, num_points)
         close(pl_file)
     end
 
+    # iterate over all parameters
     for i in 1:length(bounds)
+        # run profile likelihood for the current parameter
         pl_res = profile_likelihood(params, i, bounds, num_points)
 
+        # create a DataFrame for the data to be logged
         data = DataFrame(Fixed_parameter_index=pl_res.fix_param_index,
             Fixed_parameter=pl_res.fix_param_list,
             Parameters=pl_res.x_list,
@@ -181,11 +197,11 @@ function run_profile_likelihood(params, bounds, num_points)
         # modifying the content of profile_likelihood.csv using write method
         CSV.write("profilelikelihood_results/profile_likelihood.csv", data; append=true)
 
-        #data to plot
+        # data to plot
         fixed_parameter = pl_res.fix_param_list
         costfunction_values = pl_res.costfunc_value_list
 
-        #plot
+        # plot data
         plot(fixed_parameter, costfunction_values, xaxis="Parameter $i", yaxis="Cost function values", legend=false, lc=:black, lw=3)
 
         # plot threshold

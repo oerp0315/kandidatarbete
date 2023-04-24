@@ -8,13 +8,15 @@ using DataFrames
 using DelimitedFiles
 include("model_easy.jl")
 
-#finding the step size used to find the next point
+"Search for the step size in the gradient direction dir used to find the next point for function f at point x"
 function line_step_search(f::Function, x, dir; alpha=1.0)
     is_descent_direction::Bool = true
+
+    # divide the start step size (alpha) until a function value less than that of the previous point is found
     for i in 1:50
         x_new = x + alpha * dir
         if f(x_new) == Inf
-            alpha /= 2 
+            alpha /= 2
             continue
         elseif f(x_new) < f(x) && i != 50
             break
@@ -31,8 +33,10 @@ end
 #Newton method used to find a point in a descending direction
 function newton_method(f::Function, grad, hess, x, log_bounds)
     dir = -hess \ grad
+    # obtain step size alpha
     alpha, is_descent_direction = line_step_search(f, x, dir)
 
+    # calculate next point and ensure point is within bounds, project back if that is the case
     if is_descent_direction
         x += alpha * dir
         for i in eachindex(log_bounds)
@@ -52,6 +56,7 @@ function steepest_descent(f::Function, grad, x, log_bounds)
     dir = -grad / norm(grad)
     alpha, is_descent_direction = line_step_search(f, x, dir)
 
+    # calculate next point and ensure point is within bounds, project back if that is the case
     if is_descent_direction
         x += alpha * dir
         for i in eachindex(log_bounds)
@@ -66,7 +71,9 @@ function steepest_descent(f::Function, grad, x, log_bounds)
     return x, is_descent_direction
 end
 
+"Generate samples according to latin square method with same dimentions as bounds"
 function latin_hypercube(n_samples, bounds; seed=123)
+    # fix seed
     Random.seed!(seed)
 
     # make a folder for the result of parameter estimation
@@ -82,6 +89,7 @@ function latin_hypercube(n_samples, bounds; seed=123)
         previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
     end
 
+    # if identical settings as previously, use the same samples. Otherwise create new samples
     if isfile("p_est_results/bounds.csv") && bounds == previous_bounds &&
        length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
 
@@ -111,13 +119,14 @@ function latin_hypercube(n_samples, bounds; seed=123)
             end
         end
 
-        # scale samples to bounds.
+        # scale samples to bounds
         for i in 1:n_samples
             for j in 1:n_vars
                 samples[i, j] = (bounds[j][2] - bounds[j][1]) * samples[i, j] + bounds[j][1]
             end
         end
 
+        # save generated samples in file
         open("p_est_results/latin_hypercube.csv", "w") do io
             writedlm(io, samples)
         end
@@ -129,10 +138,12 @@ function latin_hypercube(n_samples, bounds; seed=123)
     end
 end
 
+"Remove elements in a vector equal to zeros"
 function remove_zeros(v::AbstractVector)
     return filter(x -> x != 0, v)
 end
 
+"Check the quality of a gradient of a function f at x with ForwardDiff in comparison to FiniteDifferences"
 function check_gradient(f::Function, x)
     # gradient of first sample using ForwardDiff
     grad_forwarddiff = ForwardDiff.gradient(f, x)
@@ -140,12 +151,14 @@ function check_gradient(f::Function, x)
     # gradient of first sample using FiniteDifferences
     grad_finitdiff = grad(central_fdm(10, 1), f, x)[1]
 
+    # if gradient differs more than a tolerance the gradient is not good enough and the code stops
     if any(abs.(grad_forwarddiff - grad_finitdiff) .> 1e-3)
         println("Gradient too unstable")
         exit(1)
     end
 end
 
+# struct for collecting data for logging
 struct log_results
     sample_num_list::Vector{Int64}
     x_current_sample_list::Vector{Union{Float64,AbstractArray}}
@@ -158,6 +171,7 @@ struct log_results
     time_log::Vector{Float64}
 end
 
+"Minimizes a function f a point x with a combination of steepest descent and newtons method"
 function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     # initiate lists for logging results
     sample_num_list::Vector{Int64} = zeros(max_iter + 1)
@@ -206,6 +220,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
 
         is_descent_direction::Bool = false
 
+        # initiate a list for logging the descent method used for an optimization step
         current_descent_method = []
 
         # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
@@ -222,6 +237,8 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
 
         end
 
+        #= if a descent direction could not be found, the optmimization of the current sample is terminated
+        and continue with the next =#
         if !is_descent_direction
             println("Descent direction not found!")
             break
@@ -268,6 +285,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     # log time for each sample
     time_log[1] = time
 
+    # create a log_results object for current logging data
     res = log_results(remove_zeros(sample_num_list),
         remove_zeros(x_current_sample_list),
         remove_zeros(x_current_iter),
@@ -281,7 +299,9 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     return res, iter, x
 end
 
-function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
+"Runs an optimization on function f in the region of bounds with n_samples number of samples.
+If running p_est through profile likelihood pl_mode should be true"
+function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
     if pl_mode == false
         # create a directory for parameter estimation
         if isdir("p_est_results") == false
@@ -308,7 +328,9 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
         x_samples_log = log.(x_samples)
     end
 
+    # transform bounds to log-scale
     log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
+
     # if the gradient is not good enough the program will terminate
     check_gradient(f, x_samples_log[1, :])
 
@@ -316,19 +338,21 @@ function p_est(f::Function, bounds, n_samples, pl_mode, x_samples_log)
     x_min = x_samples_log[1, :]
     f_min = f(x_min)
 
+    # initiate varable that holds the iteration that has given the lowest function value
     iter_min = 1
 
     # initiate varible sample and iteration number
     sample_num = 0
     iter = 0
 
+    # iterate over the samples, each sample is optimized 
     for x in eachrow(x_samples_log)
         sample_num += 1
 
         # minimizes the cost function for the current start-guess
         res, iter, x = opt(f::Function, x, sample_num, iter, log_bounds)
 
-        # Only necessary if Profile likelihood is not currently used
+        # only necessary if Profile likelihood is not currently used
         if pl_mode == false
             data = DataFrame(Samplepoint=res.sample_num_list,
                 Currentsample=res.x_current_sample_list,
@@ -369,5 +393,5 @@ f(x) = cost_function(problem_object, x, experimental_data)
 # Define bounds
 bounds = [(0.1, 6), (0.1, 6)]
 
-
-x_min, f_min = p_est(f, bounds, 10, false, 0)
+# run the parameter estimation
+x_min, f_min = p_est(f, bounds, 10, false)
