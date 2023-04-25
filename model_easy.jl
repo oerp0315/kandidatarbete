@@ -149,6 +149,7 @@ end
 function random_dataset_generator(problem_object, number_of_experiments, θin; standard_deviation=0.01)
     experimental_data = []
     for i = 1:number_of_experiments
+        Random.seed!(10 * i)
         t_final_data = 1 * rand() #Genererar slumpmässiga sluttider
         c0_data = rand!(zeros(length(problem_object.u0))) #Genererar slumpmässiga intial koncentrationer
         c_final_data = experimenter(problem_object, t_final_data, c0_data, standard_deviation, θin)
