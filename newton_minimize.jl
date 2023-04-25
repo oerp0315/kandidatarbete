@@ -382,6 +382,10 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
         end
     end
 
+    if !pl_mode
+        CSV.write("p_est_results/opt_point.csv", DataFrame(x_min=[x_min], f_min=f_min))
+    end
+
     # Print the results
     println("Minimum point: ", x_min)
     println("Minimum value: ", f_min)
@@ -411,6 +415,14 @@ function initial_test()
 end
 
 initial_test()
+
+
+ForwardDiff.gradient(f, ones(2))
+ForwardDiff.hessian(f, ones(2))
+
+time = @elapsed ForwardDiff.gradient(f, ones(2))
+
+time = @elapsed ForwardDiff.hessian(f, ones(2))
 
 
 # Define bounds

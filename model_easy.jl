@@ -174,7 +174,7 @@ function plot_experiment(experimental_data)
 end
 
 problem_object = model_2p_v2_initialize()
-experimental_data = random_dataset_generator(problem_object, 10, [1.0, 3.0])
+experimental_data = random_dataset_generator(problem_object, 100, [1.0, 3.0])
 
 #plot_exact_example(problem_object, [1 0.5 3 10])
 #plot_experiment(experimental_data)
