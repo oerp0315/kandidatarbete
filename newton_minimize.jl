@@ -401,7 +401,7 @@ f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för
 
 
 function initial_test()
-    model_solver(problem_object, ones(12), zeros(24), 100, [])
+    model_solver(problem_object, ones(12), zeros(24), 100)
     cost_function(problem_object, zeros(11), experimental_data, 3)
     ForwardDiff.gradient(f,ones(11))
     ForwardDiff.hessian(f,ones(11))
@@ -416,13 +416,6 @@ end
 
 initial_test()
 
-
-ForwardDiff.gradient(f, ones(2))
-ForwardDiff.hessian(f, ones(2))
-
-time = @elapsed ForwardDiff.gradient(f, ones(2))
-
-time = @elapsed ForwardDiff.hessian(f, ones(2))
 
 
 # Define bounds

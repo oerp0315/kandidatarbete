@@ -246,9 +246,9 @@ end
 
 "Gives a solution over time 
 with points at t_stop_points"
-function model_solver(_problem_object, θin, c0, t_stop, t_stop_points)
+function model_solver(_problem_object, θin, c0, t_stop)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-    solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8, saveat = t_stop_points)
+    solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
     return solution
 end
 
@@ -285,7 +285,7 @@ function terminate_affect!(integrator)
 end
 
 "Calculates steady-state concentrations"
-function ss_conc_calc(_problem_object, θin, c0)                                            ####### BÄTTTRE INITIALGISSNING ######
+function ss_conc_calc(_problem_object, θin, c0)
     t_maximum = 10000 #Maximala tid att nå maximum
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)   
     cb = DiscreteCallback(terminate_condition, terminate_affect!)
@@ -296,30 +296,32 @@ function ss_conc_calc(_problem_object, θin, c0)                                
     return solution.u[end]
 end
 
+"Linear interpolation"
+function interpolate(t, f1,f2,t1,t2)
+    return (f2-f1)./(t2-t1).*(t-t1) + f1 
+end
+
 "Calculate difference between experiments and model"
 function cost_function(problem_object, logθ, experimental_data::AbstractVector, index_glucose)
     θ = exp.(logθ)
     insert!(θ, index_glucose, 0) #Problem med dualtal?
 
-    time = @elapsed c_eq = ss_conc_calc(problem_object, θ,zeros(24))
-    println(time)
+    c_eq = ss_conc_calc(problem_object, θ, c_eq)  #c_eq är global variabel som uppdateras
     error = 0
     for experiment in experimental_data
         θ[index_glucose] = convert.(eltype(θ), experiment.glucose_conc)
-        time = @elapsed sol = model_solver(problem_object, θ, c_eq, 120, experiment.t) #All have end time 120
-        println(time)
+        sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
         if sol.retcode == :Failure
             @warn "Failed solving ODE" maxlog = 10
             return Inf
         end
         for (index_time_data, t) in enumerate(experiment.t)
-            index_time_model = convert.(Int64, findfirst(isone,sol.t .== t))
-            if typeof(index_time_model) <: Nothing
-                @warn "Solution not find at current time" maxlog = 10
-                return Inf
-            end
+            index_time_model = convert.(Int64, findfirst(isone,sol.t .>= t))
+
+            c_t = interpolate(t, sol.u[index_time_model-1],  sol.u[index_time_model], sol.t[index_time_model-1],  sol.t[index_time_model],)
+
             for index_hxt = 1:4 #Kika
-                error += sum((sol.u[index_time_model][ 5 + index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
+                error += sum((c_t[ 5 + index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
             end
         end
     end
@@ -328,8 +330,7 @@ end
 
 problem_object, system = model_initialize()
 
-
-
+global c_eq = zeros(24)
 
 CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(system)))
 CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:12), C=parameters(system)))
