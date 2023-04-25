@@ -176,6 +176,9 @@ end
 problem_object = model_2p_v2_initialize()
 experimental_data = random_dataset_generator(problem_object, 100, [1.0, 3.0])
 
+f(x) = cost_function(problem_object, x, experimental_data)
+bounds = [(0.1, 6), (0.1, 6)]
+
 #plot_exact_example(problem_object, [1 0.5 3 10])
 #plot_experiment(experimental_data)
 
