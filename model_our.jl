@@ -248,7 +248,7 @@ end
 with points at t_stop_points"
 function model_solver(_problem_object, θin, c0, t_stop, t_stop_points)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-    solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8, tstops = t_stop_points)
+    solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8, saveat = t_stop_points)
     return solution
 end
 
@@ -285,8 +285,7 @@ function terminate_affect!(integrator)
 end
 
 "Calculates steady-state concentrations"
-function ss_conc_calc(_problem_object, θin)
-    c0 = zeros(24)
+function ss_conc_calc(_problem_object, θin, c0)                                            ####### BÄTTTRE INITIALGISSNING ######
     t_maximum = 10000 #Maximala tid att nå maximum
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)   
     cb = DiscreteCallback(terminate_condition, terminate_affect!)
@@ -300,14 +299,15 @@ end
 "Calculate difference between experiments and model"
 function cost_function(problem_object, logθ, experimental_data::AbstractVector, index_glucose)
     θ = exp.(logθ)
-    push!(θ,0)  #Problem med Dualtal?
-    insert!(θ, index_glucose, 0) #Checka!!!!!
+    insert!(θ, index_glucose, 0) #Problem med dualtal?
 
-    c_eq = ss_conc_calc(problem_object, θ)
+    time = @elapsed c_eq = ss_conc_calc(problem_object, θ,zeros(24))
+    println(time)
     error = 0
     for experiment in experimental_data
         θ[index_glucose] = convert.(eltype(θ), experiment.glucose_conc)
-        sol = model_solver(problem_object, θ, c_eq, 120, experiment.t) #All have end time 120
+        time = @elapsed sol = model_solver(problem_object, θ, c_eq, 120, experiment.t) #All have end time 120
+        println(time)
         if sol.retcode == :Failure
             @warn "Failed solving ODE" maxlog = 10
             return Inf
@@ -328,8 +328,7 @@ end
 
 problem_object, system = model_initialize()
 
-model_solver(problem_object, ones(12), zeros(24), 100, [])
-cost_function(problem_object, zeros(11), experimental_data, 3)
+
 
 
 CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(system)))
