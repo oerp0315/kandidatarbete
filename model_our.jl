@@ -5,7 +5,8 @@ using Random
 using Distributions
 using DataFrames
 using CSV
-
+using ForwardDiff
+using Optim      # Tilfälligt för att testa optimering
 
 println("Nu kör vi!!!")
 
@@ -21,45 +22,46 @@ end
 index_general = [1,1,2,2,3,3,4,4]
 index_mutant = [2,2]
 
-Data01_glucose=[ 0.74  0.1   0.06  0.05  0.76  0.13  23.02  26.98
+Data01_glucose = [ 0.74  0.1   0.06  0.05  0.76  0.13  23.02  26.98
                 1.83  0.52  0.1   0.06  0.85  0.33  29.55  36.75
                 0.23  0.02  0.29  0.02  0.95  0.05  41.21  53.44
                 0.08  0.05  0.19  0.29  0.24  0.14  31.34  44.63
                 0.05  0.19  0.15  1.1   0.32  0.18  28.44  25.82
                 0.09  0.03  0.06  0.07  0.27  0.09  12.34  16.08
                 0.02  0.02  0.01  0.2   0.28  0.04   9.92  13.89]
-Data02_glucose=[ 0.07   0.02  0.06  0.05   0.52  0.13  23.02  26.98
+Data02_glucose = [ 0.07   0.02  0.06  0.05   0.52  0.13  23.02  26.98
                 3.92   1.05  0.09  0.09   0.78  0.71  21.19  24.59
                 9.86   8.15  0.18  0.18   0.67  0.57  19.69  20.69
                 19.08  15.12  0.32  0.32   1.78  1.46  16.35  17.33
                 21.03  20.01  0.35  0.35   3.96  2.96  15.57  14.37
                 27.03  24.11  0.91  1.18   7.34  8.34  12.55  13.55
                 29.03  31.05  1.03  1.08  11.16  9.16  10.37   8.12]
-Data01_mutant=[91.09  81.19
+Data01_mutant = [91.09  81.19
                 82.14  74.49
                 69.08  68.11
                 59.57  64.89
                 55.71  56.12
                 51.68  60.08]
-Data02_mutant=[23.83  20.11
+Data02_mutant = [23.83  20.11
                 41.84  34.41
                 57.87  51.86
                 76.11  65.38
                 85.12  77.12
                 92.12  81.11]
 
-timevalues_general=[0,10,20,30,40,60,120]
-timevalues_mutant=[0,10,27,35,60,120]
+timevalues_general = [0.,10.,20.,30.,40.,60.,120.]
+timevalues_mutant = [0.,10.,27.,35.,60.,120.]
 
-experiment1 = experiment_results(0.1, index_general , Data01_glucose, timevalues_general)
-experiment2 = experiment_results(0.2, index_general, Data02_glucose, timevalues_general)
+experiment1 = experiment_results(0.1, index_general , Data01_glucose, timevalues_general) #Enhet glukos!!!
+experiment2 = experiment_results(2, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 #experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
 #experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
 
 experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
 #experimental_data = [experiment1, experiment2,experiment3,experiment4]
 
-"Function to construct model"
+"Constructs the model
+return a problem_object"
 function model_initialize()
     @parameters t Extracellular_glucose k_a_Snf3 k_i_Snf3g k_i_Std1 K_Std1_Rgt1 k_i_Mth1 K_Mth1_Rgt1 k_p_ATP k_i_Snf1 k_i_Mig1 T_mHXT1 θ_activation
     @variables Snf3(t) Snf3g(t) Std1(t) Mth1(t) Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t)  mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
@@ -223,18 +225,18 @@ function model_initialize()
         mMIG1 => c0[23],
         mMIG2 => c0[24]]
 
-    p = [Extracellular_glucose => θin[1],
-        k_a_Snf3 => θin[2],
-        k_i_Snf3g => θin[3],
-        k_i_Std1 => θin[4],
-        K_Std1_Rgt1 => θin[5],
-        k_i_Mth1 => θin[6], 
-        K_Mth1_Rgt1 => θin[7],
-        k_p_ATP => θin[8], 
-        k_i_Snf1 => θin[9],
-        k_i_Mig1 => θin[10], 
-        T_mHXT1 => θin[11],
-        θ_activation => θin[12] ]
+    p = [k_a_Snf3 => θin[1],
+        k_i_Snf3g => θin[2],
+        k_i_Std1 => θin[3],
+        K_Std1_Rgt1 => θin[4],
+        k_i_Mth1 => θin[5], 
+        K_Mth1_Rgt1 => θin[6],
+        k_p_ATP => θin[7], 
+        k_i_Snf1 => θin[8],
+        k_i_Mig1 => θin[9], 
+        T_mHXT1 => θin[10],
+        θ_activation => θin[11],
+        Extracellular_glucose => θin[12] ]
 
 
       tspan = (0.0, 10) #Tiden vi kör modellen under
@@ -242,17 +244,33 @@ function model_initialize()
       return problem_object, system
 end
 
-function model_solver(_problem_object, θin, c0, t_stop)
+"Gives a solution over time 
+with points at t_stop_points"
+function model_solver(_problem_object, θin, c0, t_stop, t_stop_points)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-    solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
+    solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8, tstops = t_stop_points)
     return solution
 end
 
-function terminate_affect!(integrator)
-    terminate!(integrator)
+"Takes number or vector and converts the elements to float64"
+function to_newtype(input, typenumber)
+    if typeof(input) <: ForwardDiff.Dual
+        intermediate = ForwardDiff.value(input)
+        output = convert.(eltype(typenumber),intermediate)
+    elseif eltype(input) <: ForwardDiff.Dual
+        intermediate = zeros(length(input))
+        for (i, number) in enumerate(input)
+            intermediate[i] = ForwardDiff.value(number)
+        end
+        output = convert.(eltype(typenumber),intermediate)
+    else
+        output = convert.(eltype(typenumber),input)
+    end
+    return output
 end
 
-function terminate_condition(u, t, integrator)
+"Condition to terminate pre_equilibrium. Happens when gradient is flat enough meaning steady-state is reached"
+function terminate_condition(u, t, integrator) 
     abstol=1e-8 /100
     reltol=1e-8 /100
 
@@ -261,77 +279,89 @@ function terminate_condition(u, t, integrator)
     return valCheck < 1.0
 end
 
-# pre_equlibrate(problem_object, θin)
-# Kör tills derivatan är tillräckligt liten eller max tid har gått
-function pre_equlibrate(_problem_object, θin)
+"Terminates pre_equilibrium"
+function terminate_affect!(integrator)
+    terminate!(integrator)
+end
+
+"Calculates steady-state concentrations"
+function ss_conc_calc(_problem_object, θin)
     c0 = zeros(24)
     t_maximum = 10000 #Maximala tid att nå maximum
-    problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)
-    
+    problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)   
     cb = DiscreteCallback(terminate_condition, terminate_affect!)
-
     solution = solve(problem_object, callback = cb, Rodas5P(), abstol=1e-8, reltol=1e-8)
-    println(solution.t[end])
     if solution.t == t_maximum
-        @warn "Lyckades inte nå jämnvikt i pre_equilibrium"
+        @warn "Lyckades inte nå jämnvikt i pre_equilibrium" maxlog=10
     end
     return solution.u[end]
 end
 
-
-
-# Skriv om!!
 "Calculate difference between experiments and model"
 function cost_function(problem_object, logθ, experimental_data::AbstractVector)
     θ = exp.(logθ)
+    push!(θ,0)  #Problem med Dualtal?
+
+    c_eq = ss_conc_calc(problem_object, θ)
     error = 0
-    c_eq = pre_equilibrate2(problem_obect, θ)
-
     for experiment in experimental_data
-        θ[1] = FIXA HÄR!!!
-
-        sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
-
-        for (index_time, t) in enumerate(experiment.t)
-            # Beräkna modellens koncentrationer av HXT generna
-            interpolate_point = findfirst(isone,sol.t .> t)
-            c_model = interpolate(t,sol.t(interpolate_point),sol.t(interpolate_point-1),sol.u(interpolate_point),sol.u(interpolate_point-1) )
-
-            for (index_hxt, current_hxt_type) in enumerate(data.hxt_types)  #Kika
-               error += sum((c_model - data.c[index_time, index_hxt]) .^ 2) #Hitta koncentrationen i c_model som motsvarar rätt HXT-gen
+        θ[end] = convert.(eltype(θ), experiment.glucose_conc)
+        sol = model_solver(problem_object, θ, c_eq, 120, experiment.t) #All have end time 120
+        if sol.retcode == :Failure
+            @warn "Failed solving ODE" maxlog = 10
+            return Inf
+        end
+        for (index_time_data, t) in enumerate(experiment.t)
+            index_time_model = convert.(Int64, findfirst(isone,sol.t .== t))
+        if typeof(index_time_model) <: Nothing
+            @warn "Solution not find at current time" maxlog = 10
+            return Inf
+        end
+            for index_hxt = 1:4 #Kika
+                error += sum((sol.u[index_time_model][ 5 + index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
             end
         end
       end
       return error
 end
 
-function interpolate(t, t_1, t_2, f_1, f_2)
-    return f_1 + (t-t_1) * (f_1 -f_2)/(t_1-t_2)
-end
-
 function CSV_storer(time, model_conc, labels)
+    if isdir("kinetic_plot") == false
+        mkdir("kinetic_plot")
+    end
+
     model_data = DataFrame(hcat(time,model_conc),:auto)
     rename!(model_data, 2:25 .=> labels)
     rename!(model_data, 1 .=> "Time" )
-    CSV.write("kinetic_data.csv", model_data)
+    CSV.write("kinetic_plot/kinetic_data.csv", model_data)
 end
 
-c0 = zeros(24)
-θin = ones(12)
+function kinetic_documenter(problem_object,c0,θin)
+    solution = model_solver(problem_object, θin, c0, 500, [])
+
+    time = reshape(solution.t, length(solution.t), 1)
+    model_conc = transpose(Matrix(solution))
+    labels = string.(states(system))
+    labels_matrix = reshape(labels, 1, length(labels))
+
+    plot(solution.t, model_conc, label=labels_matrix, linewidth = 2)
+    #plot!(legend=:outerbottom, legendcolumn=3)
+    if isdir("kinetic_plot") == false
+        mkdir("kinetic_plot")
+    end
+    savefig("kinetic_plot/kinetikfil.png")
+
+    CSV_storer(time, model_conc, labels)
+end
+
 problem_object, system = model_initialize()
-solution = model_solver(problem_object, θin, c0, 500)
 
+model_solver(problem_object, ones(12), zeros(24), 100, [])
+cost_function(problem_object, zeros(11), experimental_data)
 
-time= reshape(solution.t, length(solution.t), 1)
-model_conc = transpose(Matrix(solution))
-labels = string.(states(system))
-labels_matrix = reshape(labels, 1, length(labels))
+#kinetic_documenter(problem_object, zeros(24), ones(12))
 
-plot(solution.t, model_conc, label=labels_matrix, linewidth = 2)
-#plot(solution.t,mo)
-#plot!(legend=:outerbottom, legendcolumn=3)
-savefig("kinetikfil.png")
-
-
-CSV_storer(time, model_conc, labels)
+#f(x) = cost_function(problem_object, x, experimental_data)
+#optimize(f, ones(11), BFGS())
+#optimize(f, ones(11))
 
