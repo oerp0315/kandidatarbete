@@ -25,8 +25,17 @@ function plot_pl()
 end
 
 function plot_waterfall()
+    data = CSV.read("p_est_results/waterfall_data.csv", DataFrame, types=Float64)
+    sort!(data)
+    y = data[:, 1]
+    x = collect(1:length(y))
 
+    plot(x, y)
+    savefig("p_est_results/waterfall_plot")
 end
 
 # plot profile likelihood
 plot_pl()
+
+# plot waterfall plot
+plot_waterfall()

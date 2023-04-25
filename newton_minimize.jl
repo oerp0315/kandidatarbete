@@ -298,7 +298,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         #remove_zeros(cond_num_list),
         time_log)
 
-    return res, iter, x, x_current_iter[end], function_values[end]
+    return res, iter, x, res.x_current_iter[end], res.function_values[end]
 end
 
 "Runs an optimization on function f in the region of bounds with n_samples number of samples.
@@ -348,8 +348,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
     iter = 0
 
     if !pl_mode
-        x_min_list = zeros(n_samples)
-        f_min_list = zeros(n_samples)
+        f_min_list::Vector{Float64} = zeros(n_samples)
     end
 
     # iterate over the samples, each sample is optimized 
@@ -376,7 +375,6 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
             # log time for each sample point
             CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
 
-            x_min_list[sample_num] = x_current_min
             f_min_list[sample_num] = f_current_min
         end
 
@@ -390,7 +388,8 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
     end
 
     if !pl_mode
-        CSV.write("p_est_results/waterfall_data.csv", DataFrame(sample_num=collect(1:sample_num), x_min_list=x_min_list, f_min_list=f_min_list))
+
+        CSV.write("p_est_results/waterfall_data.csv", DataFrame(f_min_list=f_min_list))
 
         CSV.write("p_est_results/opt_point.csv", DataFrame(x_min=[x_min], f_min=f_min))
     end
