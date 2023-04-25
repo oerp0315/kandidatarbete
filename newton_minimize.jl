@@ -6,7 +6,9 @@ using Random
 using CSV
 using DataFrames
 using DelimitedFiles
-include("model_easy.jl")
+using LinearAlgebra
+#include("model_easy.jl")
+include("model_our.jl")
 
 "Search for the step size in the gradient direction dir used to find the next point for function f at point x"
 function line_step_search(f::Function, x, dir; alpha=1.0)
@@ -146,13 +148,14 @@ end
 "Check the quality of a gradient of a function f at x with ForwardDiff in comparison to FiniteDifferences"
 function check_gradient(f::Function, x)
     # gradient of first sample using ForwardDiff
+    println(x)
     grad_forwarddiff = ForwardDiff.gradient(f, x)
 
     # gradient of first sample using FiniteDifferences
     grad_finitdiff = grad(central_fdm(10, 1), f, x)[1]
 
     # if gradient differs more than a tolerance the gradient is not good enough and the code stops
-    if any(abs.(grad_forwarddiff - grad_finitdiff) .> 1e-3)
+    if any(abs.(grad_forwarddiff - grad_finitdiff) / min(abs(norm(grad_forwarddiff)) , abs(norm(grad_finitdiff)) ) .> 1e-3)
         println("Gradient too unstable")
         exit(1)
     end
@@ -388,10 +391,12 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
 end
 
 # Define the function to optimize
-f(x) = cost_function(problem_object, x, experimental_data)
+#f(x) = cost_function(problem_object, x, experimental_data)
+f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för glukos
 
 # Define bounds
-bounds = [(0.1, 6), (0.1, 6)]
+#bounds = [(0.1, 6), (0.1, 6)]
+bounds = [(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3)]
 
 # run the parameter estimation
-x_min, f_min = p_est(f, bounds, 10, false)
+x_min, f_min = p_est(f, bounds, 20, false)

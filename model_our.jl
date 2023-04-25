@@ -3,9 +3,9 @@ using ModelingToolkit
 using Plots
 using Random
 using Distributions
+using ForwardDiff
 using DataFrames
 using CSV
-using ForwardDiff
 using Optim      # Tilfälligt för att testa optimering
 
 println("Nu kör vi!!!")
@@ -298,14 +298,15 @@ function ss_conc_calc(_problem_object, θin)
 end
 
 "Calculate difference between experiments and model"
-function cost_function(problem_object, logθ, experimental_data::AbstractVector)
+function cost_function(problem_object, logθ, experimental_data::AbstractVector, index_glucose)
     θ = exp.(logθ)
     push!(θ,0)  #Problem med Dualtal?
+    insert!(θ, index_glucose, 0) #Checka!!!!!
 
     c_eq = ss_conc_calc(problem_object, θ)
     error = 0
     for experiment in experimental_data
-        θ[end] = convert.(eltype(θ), experiment.glucose_conc)
+        θ[index_glucose] = convert.(eltype(θ), experiment.glucose_conc)
         sol = model_solver(problem_object, θ, c_eq, 120, experiment.t) #All have end time 120
         if sol.retcode == :Failure
             @warn "Failed solving ODE" maxlog = 10
@@ -313,55 +314,26 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector)
         end
         for (index_time_data, t) in enumerate(experiment.t)
             index_time_model = convert.(Int64, findfirst(isone,sol.t .== t))
-        if typeof(index_time_model) <: Nothing
-            @warn "Solution not find at current time" maxlog = 10
-            return Inf
-        end
+            if typeof(index_time_model) <: Nothing
+                @warn "Solution not find at current time" maxlog = 10
+                return Inf
+            end
             for index_hxt = 1:4 #Kika
                 error += sum((sol.u[index_time_model][ 5 + index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
             end
         end
-      end
-      return error
-end
-
-function CSV_storer(time, model_conc, labels)
-    if isdir("kinetic_plot") == false
-        mkdir("kinetic_plot")
     end
-
-    model_data = DataFrame(hcat(time,model_conc),:auto)
-    rename!(model_data, 2:25 .=> labels)
-    rename!(model_data, 1 .=> "Time" )
-    CSV.write("kinetic_plot/kinetic_data.csv", model_data)
-end
-
-function kinetic_documenter(problem_object,c0,θin)
-    solution = model_solver(problem_object, θin, c0, 500, [])
-
-    time = reshape(solution.t, length(solution.t), 1)
-    model_conc = transpose(Matrix(solution))
-    labels = string.(states(system))
-    labels_matrix = reshape(labels, 1, length(labels))
-
-    plot(solution.t, model_conc, label=labels_matrix, linewidth = 2)
-    #plot!(legend=:outerbottom, legendcolumn=3)
-    if isdir("kinetic_plot") == false
-        mkdir("kinetic_plot")
-    end
-    savefig("kinetic_plot/kinetikfil.png")
-
-    CSV_storer(time, model_conc, labels)
+    return error
 end
 
 problem_object, system = model_initialize()
 
 model_solver(problem_object, ones(12), zeros(24), 100, [])
-cost_function(problem_object, zeros(11), experimental_data)
+cost_function(problem_object, zeros(11), experimental_data, 3)
 
-#kinetic_documenter(problem_object, zeros(24), ones(12))
 
-#f(x) = cost_function(problem_object, x, experimental_data)
-#optimize(f, ones(11), BFGS())
-#optimize(f, ones(11))
+CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(system)))
+CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:12), C=parameters(system)))
+
+
 
