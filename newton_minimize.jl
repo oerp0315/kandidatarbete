@@ -32,7 +32,7 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
     return alpha, is_descent_direction
 end
 
-#Newton method used to find a point in a descending direction
+#= Newton method used to find a point in a descending direction
 function newton_method(f::Function, grad, hess, x, log_bounds)
     dir = -hess \ grad
     # obtain step size alpha
@@ -51,7 +51,7 @@ function newton_method(f::Function, grad, hess, x, log_bounds)
     end
 
     return x, is_descent_direction
-end
+end =#
 
 #Alternative method to find a point in a descending direction
 function steepest_descent(f::Function, grad, x, log_bounds)
@@ -170,7 +170,7 @@ struct log_results
     term_criteria::Vector{Union{Float64,AbstractArray,String}}
     term_reason::Vector{Union{Float64,String}}
     descent_method::Vector{Union{Float64,AbstractArray,String}}
-    cond_num_list::AbstractVector{Union{Float64,String}}
+    #cond_num_list::AbstractVector{Union{Float64,String}}
     time_log::Vector{Float64}
 end
 
@@ -184,14 +184,14 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     term_criteria::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
     term_reason::Vector{Union{Float64,String}} = zeros(max_iter + 1)
     descent_method::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
-    cond_num_list::AbstractVector{Union{Float64,String}} = zeros(max_iter + 1)
+    #cond_num_list::AbstractVector{Union{Float64,String}} = zeros(max_iter + 1)
     time_log::Vector{Float64} = zeros(1)
 
     x_current_samplepoint = x
 
     # calculate hessian etc. for first point
     grad = ForwardDiff.gradient(f, x)
-    hess = ForwardDiff.hessian(f, x)
+    #hess = ForwardDiff.hessian(f, x)
     func_val = f(x)
 
     # logging for first x
@@ -201,7 +201,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     function_values[1] = func_val
     term_criteria[1] = "start point, no termination criteria"
     descent_method[1] = "start point, not descended yet"
-    cond_num_list[1] = "start point, no condition number"
+    #cond_num_list[1] = "start point, no condition number"
     term_reason[1] = "start point, no reason for temination"
 
     time = @elapsed for i in 1:max_iter
@@ -213,10 +213,10 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
 
         # Evaluate the function and its gradient and Hessian at the current point
         grad = ForwardDiff.gradient(f, x)
-        hess = ForwardDiff.hessian(f, x)
+        #hess = ForwardDiff.hessian(f, x)
 
         # calculate condtion number
-        cond_num = cond(hess)
+        #cond_num = cond(hess)
 
         # To compare with the current x in termination criteria 
         x_prev = x
@@ -227,18 +227,18 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         current_descent_method = []
 
         # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
-        if isposdef(hess)
+        #=if isposdef(hess)
             x, is_descent_direction = newton_method(f, grad, hess, x, log_bounds)
             #logging the used descent method
             push!(current_descent_method, "Newton method")
-        end
+        end =#
 
-        if !is_descent_direction
-            x, is_descent_direction = steepest_descent(f, grad, x, log_bounds)
-            #logging the used descent method
-            push!(current_descent_method, "Steepest descent")
+        #if !is_descent_direction #tror inte detta behöver vara i en if_sats längre
+        x, is_descent_direction = steepest_descent(f, grad, x, log_bounds)
+        #logging the used descent method
+        push!(current_descent_method, "Steepest descent")
 
-        end
+        #end 
 
         #= if a descent direction could not be found, the optmimization of the current sample is terminated
         and continue with the next =#
@@ -274,7 +274,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         function_values[i+1] = f(x)
         term_criteria[i+1] = current_term_criteria
         descent_method[i+1] = current_descent_method
-        cond_num_list[i+1] = cond_num
+        #cond_num_list[i+1] = cond_num
 
         # Checks if two or more of the termination criteria are met
         if length(current_term_criteria) >= 2
@@ -296,7 +296,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         remove_zeros(term_criteria),
         remove_zeros(term_reason),
         remove_zeros(descent_method),
-        remove_zeros(cond_num_list),
+        #remove_zeros(cond_num_list),
         time_log)
 
     return res, iter, x
@@ -361,7 +361,7 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
                 Currentsample=res.x_current_sample_list,
                 Iteration=res.x_current_iter,
                 Functionvalues=res.function_values,
-                Condnum=res.cond_num_list,
+                #Condnum=res.cond_num_list,
                 Terminationcriteria=res.term_criteria,
                 Descentmethod=res.descent_method,
                 Terminationreason=res.term_reason)
@@ -396,11 +396,11 @@ end
 
 # Define the function to optimize
 #f(x) = cost_function(problem_object, x, experimental_data)
-f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för glukos
+f(x) = cost_function(problem_object, x, experimental_data) #, 3) # 3 är index för glukos
 
 
 
-function initial_test()
+#=function initial_test()
     model_solver(problem_object, ones(12), zeros(24), 100, [])
     cost_function(problem_object, zeros(11), experimental_data, 3)
     ForwardDiff.gradient(f,ones(11))
@@ -412,17 +412,17 @@ function initial_test()
     time_hessian = @elapsed ForwardDiff.hessian(f,ones(11))
     data = DataFrame(time_model_solver=time_model_solver, time_cost_function=time_cost_function, time_gradient=time_gradient, time_hessian=time_hessian)
     CSV.write("ss_timer.csv", data)
-end
+end =#
 
-initial_test()
+#initial_test()
 
 
 ForwardDiff.gradient(f, ones(2))
-ForwardDiff.hessian(f, ones(2))
+#ForwardDiff.hessian(f, ones(2))
 
 time = @elapsed ForwardDiff.gradient(f, ones(2))
 
-time = @elapsed ForwardDiff.hessian(f, ones(2))
+#time = @elapsed ForwardDiff.hessian(f, ones(2))
 
 
 # Define bounds
@@ -430,4 +430,4 @@ time = @elapsed ForwardDiff.hessian(f, ones(2))
 bounds = [(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3)]
 
 # run the parameter estimation
-#x_min, f_min = p_est(f, bounds, 20, false)
+x_min, f_min = p_est(f, bounds, 20, false)
