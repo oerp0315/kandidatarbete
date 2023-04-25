@@ -328,6 +328,22 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
     return error
 end
 
+function initial_test()
+    model_solver(problem_object, ones(12), zeros(24), 100)
+    cost_function(problem_object, zeros(11), experimental_data, 3)
+    ForwardDiff.gradient(f,ones(11))
+    ForwardDiff.hessian(f,ones(11))
+
+    time_model_solver = @elapsed model_solver(problem_object, ones(12), zeros(24), 100, [])
+    time_cost_function = @elapsed cost_function(problem_object, zeros(11), experimental_data, 3)
+    time_gradient = @elapsed ForwardDiff.gradient(f,ones(11))
+    time_hessian = @elapsed ForwardDiff.hessian(f,ones(11))
+    data = DataFrame(time_model_solver=time_model_solver, time_cost_function=time_cost_function, time_gradient=time_gradient, time_hessian=time_hessian)
+    CSV.write("ss_timer.csv", data)
+end
+
+initial_test()
+
 problem_object, system = model_initialize()
 
 global c_eq = zeros(24)
@@ -336,4 +352,5 @@ CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(s
 CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:12), C=parameters(system)))
 
 
-
+bounds = [(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3)]
+f(x) = cost_function(problem_object, x, experimental_data) #, 3) # 3 är index för glukos
