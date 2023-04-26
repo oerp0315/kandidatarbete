@@ -7,8 +7,6 @@ using CSV
 using DataFrames
 using DelimitedFiles
 using LinearAlgebra
-include("model_easy.jl")
-#include("model_our.jl")
 
 "Search for the step size in the gradient direction dir used to find the next point for function f at point x"
 function line_step_search(f::Function, x, dir; alpha=1.0)
@@ -401,6 +399,3 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
 
     return x_min, f_min
 end
-
-# run the parameter estimation
-x_min, f_min = p_est(f, bounds, 20, false)

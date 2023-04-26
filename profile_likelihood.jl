@@ -228,17 +228,3 @@ function contourplot_2p()
     contour(x, y, A, levels=30)
     savefig("plot_2d.png")
 end
-
-# Define the initial parameter values
-params = x_min
-
-# Perform profile likelihood analysis for each parameter
-num_points = 100
-threshold = 3.84
-
-# save threshold
-CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
-
-run_profile_likelihood(params, bounds, num_points, threshold)
-
-#contourplot_2p()

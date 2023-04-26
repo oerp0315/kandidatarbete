@@ -6,6 +6,8 @@ using Distributions
 using ForwardDiff
 using DataFrames
 using CSV
+include("newton_minimize.jl")
+include("profile_likelihood.jl")
 using Optim      # Tilfälligt för att testa optimering
 
 println("Nu kör vi!!!")
@@ -348,3 +350,6 @@ CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:12), C=para
 
 bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
 f(x) = cost_function(problem_object, x, experimental_data) #, 3) # 3 är index för glukos
+
+# run the parameter estimation
+x_min, f_min = p_est(f, bounds, 20, false)

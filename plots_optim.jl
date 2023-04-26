@@ -1,6 +1,7 @@
 using Plots
 using CSV
 using DataFrames
+using LaTeXStrings
 
 function plot_pl()
     data = CSV.read("profilelikelihood_results/profile_likelihood.csv", DataFrame;
@@ -12,7 +13,7 @@ function plot_pl()
         sample_number = sample_number.fixed_parameter_index
 
         # plot profile likelihood
-        plot(group[!, :fixed_parameter], group[!, :cost_function_values], xaxis="Parameter $sample_number", yaxis="Cost function values", legend=false, lc=:black, lw=2)
+        plot(group[!, :fixed_parameter], group[!, :cost_function_values], xaxis=L"$\theta_%$sample_number$", yaxis="Cost function", legend=false, lc=:black, lw=2, labelfontsize=15)
 
         # plot threshold
         x = collect(Float64, range(group[!, :fixed_parameter][1], group[!, :fixed_parameter][end], length=2))
@@ -30,8 +31,21 @@ function plot_waterfall()
     y = data[:, 1]
     x = collect(1:length(y))
 
-    plot(x, y)
+    plot(x, y, yaxis="Cost function", legend=false)
     savefig("p_est_results/waterfall_plot")
+
+    n_convergent_samples = 0
+    for i in 1:length(x)
+        if abs(y[i] - y[1]) < 0.1
+            n_convergent_samples += 1
+        else
+            break
+        end
+    end
+    convergence_ratio = 100 * (n_convergent_samples / length(x))
+    result = "$convergence_ratio% of the start points converged to the same minimum point, 
+with an accepted difference of 0.1 in function value from the smallest function value"
+    CSV.write("p_est_results/waterfall_results.csv", DataFrame(waterfall_result=result))
 end
 
 # plot profile likelihood
