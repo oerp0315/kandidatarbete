@@ -1,4 +1,7 @@
 using DifferentialEquations, ModelingToolkit, Plots, Random, Distributions
+include("newton_minimize.jl")
+include("profile_likelihood.jl")
+
 "Object for experimental results"
 struct experiment_results
     c0::AbstractVector
@@ -173,11 +176,36 @@ function plot_experiment(experimental_data)
     savefig("exp_data.png")
 end
 
-problem_object = model_2p_v2_initialize()
-experimental_data = random_dataset_generator(problem_object, 100, [1.0, 3.0])
+#problem_object = model_2p_v2_initialize()
+#experimental_data = random_dataset_generator(problem_object, 100, [1.0, 3.0])
+#bounds = [(0.1, 6), (0.1, 6)]
+
+problem_object = model_2p_initialize()
+experimental_data = random_dataset_generator(problem_object, 10, [1, 0.5])
+bounds = [(0.1, 2), (0.1, 2)]
+
+#problem_object = model_4p_initialize()
+#experimental_data = random_dataset_generator(problem_object, 100, [1.0, 0.5, 3.0, 10.0])
+#bounds = [(0.1, 11), (0.1, 11), (0.1, 11), (0.1, 11)]
+
+f(x) = cost_function(problem_object, x, experimental_data)
+
+# run the parameter estimation
+x_min, f_min = p_est(f, bounds, 100, false)
 
 #plot_exact_example(problem_object, [1 0.5 3 10])
 #plot_experiment(experimental_data)
 
-#problem_object = model_2p_initialize()
-#experimental_data = random_dataset_generator(problem_object, 10, [1, 0.5])
+# Define the initial parameter values
+params = x_min
+
+# Perform profile likelihood analysis for each parameter
+num_points = 100
+threshold = 3.84
+
+# save threshold
+CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
+
+run_profile_likelihood(params, bounds, num_points, threshold)
+
+#contourplot_2p()

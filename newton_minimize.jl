@@ -7,8 +7,6 @@ using CSV
 using DataFrames
 using DelimitedFiles
 using LinearAlgebra
-#include("model_easy.jl")
-include("model_our.jl")
 
 "Search for the step size in the gradient direction dir used to find the next point for function f at point x"
 function line_step_search(f::Function, x, dir; alpha=1.0)
@@ -148,14 +146,13 @@ end
 "Check the quality of a gradient of a function f at x with ForwardDiff in comparison to FiniteDifferences"
 function check_gradient(f::Function, x)
     # gradient of first sample using ForwardDiff
-    println(x)
     grad_forwarddiff = ForwardDiff.gradient(f, x)
 
     # gradient of first sample using FiniteDifferences
     grad_finitdiff = grad(central_fdm(10, 1), f, x)[1]
 
     # if gradient differs more than a tolerance the gradient is not good enough and the code stops
-    if any(abs.(grad_forwarddiff - grad_finitdiff) / min(abs(norm(grad_forwarddiff)) , abs(norm(grad_finitdiff)) ) .> 1e-3)
+    if any(abs.(grad_forwarddiff - grad_finitdiff) / min(abs(norm(grad_forwarddiff)), abs(norm(grad_finitdiff))) .> 1e-3)
         println("Gradient too unstable")
         exit(1)
     end
@@ -299,7 +296,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         #remove_zeros(cond_num_list),
         time_log)
 
-    return res, iter, x
+    return res, iter, x, res.x_current_iter[end], res.function_values[end]
 end
 
 "Runs an optimization on function f in the region of bounds with n_samples number of samples.
@@ -348,12 +345,16 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
     sample_num = 0
     iter = 0
 
+    if !pl_mode
+        f_min_list::Vector{Float64} = zeros(n_samples)
+    end
+
     # iterate over the samples, each sample is optimized 
     for x in eachrow(x_samples_log)
         sample_num += 1
 
         # minimizes the cost function for the current start-guess
-        res, iter, x = opt(f::Function, x, sample_num, iter, log_bounds)
+        res, iter, x, x_current_min, f_current_min = opt(f::Function, x, sample_num, iter, log_bounds)
 
         # only necessary if Profile likelihood is not currently used
         if pl_mode == false
@@ -371,6 +372,8 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
 
             # log time for each sample point
             CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
+
+            f_min_list[sample_num] = f_current_min
         end
 
         # Update the minimum point and value
@@ -383,6 +386,9 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
     end
 
     if !pl_mode
+
+        CSV.write("p_est_results/waterfall_data.csv", DataFrame(f_min_list=f_min_list))
+
         CSV.write("p_est_results/opt_point.csv", DataFrame(x_min=[x_min], f_min=f_min))
     end
 
@@ -393,41 +399,3 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
 
     return x_min, f_min
 end
-
-# Define the function to optimize
-#f(x) = cost_function(problem_object, x, experimental_data)
-f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för glukos
-
-
-
-#=function initial_test()
-    model_solver(problem_object, ones(12), zeros(24), 100, [])
-    cost_function(problem_object, zeros(11), experimental_data, 3)
-    ForwardDiff.gradient(f,ones(11))
-    ForwardDiff.hessian(f,ones(11))
-
-    time_model_solver = @elapsed model_solver(problem_object, ones(12), zeros(24), 100, [])
-    time_cost_function = @elapsed cost_function(problem_object, zeros(11), experimental_data, 3)
-    time_gradient = @elapsed ForwardDiff.gradient(f,ones(11))
-    time_hessian = @elapsed ForwardDiff.hessian(f,ones(11))
-    data = DataFrame(time_model_solver=time_model_solver, time_cost_function=time_cost_function, time_gradient=time_gradient, time_hessian=time_hessian)
-    CSV.write("ss_timer.csv", data)
-end =#
-
-#initial_test()
-
-
-ForwardDiff.gradient(f, ones(2))
-#ForwardDiff.hessian(f, ones(2))
-
-time = @elapsed ForwardDiff.gradient(f, ones(2))
-
-#time = @elapsed ForwardDiff.hessian(f, ones(2))
-
-
-# Define bounds
-#bounds = [(0.1, 6), (0.1, 6)]
-bounds = [(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3),(1e-3, 1e3)]
-
-# run the parameter estimation
-x_min, f_min = p_est(f, bounds, 20, false)
