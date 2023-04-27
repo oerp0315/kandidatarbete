@@ -1,3 +1,4 @@
+using LaTeXStrings
 include("newton_minimize.jl")
 
 "Determines the next point in the profiling of the cost function"
@@ -200,8 +201,8 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 end
 
 function contourplot_2p()
-    x = collect(range(0.1, 6, length=100))
-    y = collect(range(0.1, 5, length=100))
+    x = collect(range(0.1, 2, length=100))
+    y = collect(range(0.1, 6, length=100))
     points = Vector{Vector{Float64}}(undef, length(x) * length(y))
 
     k = 1
@@ -225,6 +226,6 @@ function contourplot_2p()
             index += 1 # increment index for next element in vector
         end
     end
-    contour(x, y, A, levels=30)
+    contour(x, y, xaxis=L"\theta_1", yaxis=L"\theta_2", A)
     savefig("plot_2d.png")
 end

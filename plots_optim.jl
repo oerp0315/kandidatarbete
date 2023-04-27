@@ -31,7 +31,7 @@ function plot_waterfall()
     y = data[:, 1]
     x = collect(1:length(y))
 
-    plot(x, y, yaxis="Cost function", legend=false)
+    plot(x, y, xaxis="Startvärden", yaxis="Kostnadsfunktion", legend=false)
     savefig("p_est_results/waterfall_plot")
 
     n_convergent_samples = 0
