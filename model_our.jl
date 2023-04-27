@@ -56,6 +56,12 @@ timevalues_mutant = [0.0, 10.0, 27.0, 35.0, 60.0, 120.0]
 
 experiment1 = experiment_results(3.346e9, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
 experiment2 = experiment_results(6.685e10, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
+
+
+#experiment1 = experiment_results(1, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
+#experiment2 = experiment_results(1, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
+
+
 #experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
 #experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
 
@@ -245,12 +251,13 @@ end
 
 "Gives a solution over time 
 with points at t_stop_points"
-function model_solver(_problem_object, θin, c0, t_stop)
+function model_solver(_problem_object::ODEProblem, θin::AbstractVector, c0::AbstractVector, t_stop::Number)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-    sol = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
+    sol = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8;verbose=false)
     return sol
 end
 
+#=
 "Takes number or vector and converts the elements to float64"
 function to_newtype(input, typenumber)
     if typeof(input) <: ForwardDiff.Dual
@@ -267,6 +274,7 @@ function to_newtype(input, typenumber)
     end
     return output
 end
+=#
 
 "Condition to terminate pre_equilibrium. Happens when gradient is flat enough meaning steady-state is reached"
 function terminate_condition(u, t, integrator)
@@ -284,12 +292,12 @@ function terminate_affect!(integrator)
 end
 
 "Calculates steady-state concentrations"
-function ss_conc_calc(_problem_object, θin, c0)
+function ss_conc_calc(_problem_object::ODEProblem, θin::AbstractVector, c0::AbstractVector)
     t_maximum = 10000 #Maximala tid att nå maximum
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)
     cb = DiscreteCallback(terminate_condition, terminate_affect!)
-    sol = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8)
-    if sol.retcode ≠ :Success
+    sol = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8;verbose=false)
+    if sol.retcode ≠ :Success && sol.retcode ≠ :Terminated
         @warn "Failed solving ss ODE, reason: $(sol.retcode)" maxlog = 10
         return Inf
     end
@@ -301,8 +309,21 @@ function ss_conc_calc(_problem_object, θin, c0)
 end
 
 "Linear interpolation"
-function interpolate(t, f1, f2, t1, t2)
+function interpolate(t::Number, f1, f2, t1, t2)
     return (f2 - f1) ./ (t2 - t1) .* (t - t1) + f1
+end
+
+"For some error checking in ODE:solver"
+function check_extra_error(e)
+    if e isa BoundsError
+        @warn "Bounds error ODE solve"
+    elseif e isa DomainError
+        @warn "Domain error on ODE solve"
+    elseif e isa SingularException
+        @warn "Singular exeption on ODE solve"
+    else
+        rethrow(e)
+    end
 end
 
 "Calculate difference between experiments and model"
@@ -316,30 +337,34 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
     end
     error = 0
     for experiment in experimental_data
-        θ[index_glucose] = convert.(eltype(θ), experiment.glucose_conc)
-        sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
-        if sol.retcode ≠ :Success
-            if sol.retcode ≠ :DtLessThanMin
-                @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
+        try
+            θ[index_glucose] = convert.(eltype(θ), experiment.glucose_conc)
+            sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
+            if sol.retcode ≠ :Success
+                if sol.retcode ≠ :DtLessThanMin
+                    @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
+                end
+                return Inf
             end
+            for (index_time_data, t) in enumerate(experiment.t)
+                #c_t = sol(t)
+                index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
+
+                if index_time_model == 1
+                    c_t = sol.u[1]
+                else
+                    c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
+                end
+                for index_hxt = 1:4 #Kika
+                    error += sum((c_t[5+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
+                    #error = 0
+                end
+            end
+        catch e
+            check_extra_error(e)
             return Inf
         end
-        println(sol.t)
-        for (index_time_data, t) in enumerate(experiment.t)
-            index_time_wrong_format = findfirst(isone, sol.t .>= t)
-            println("Index t1:$index_time_wrong_format t:$t")
-            index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
-            println("Index t2:$index_time_model")
-            if index_time_model == 1
-                c_t = sol.u[1]
-            else
-                c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
-            end
-            for index_hxt = 1:4 #Kika
-                #error += sum((c_t[5+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
-                error = 0
-            end
-        end
+
     end
     return error
 end
@@ -361,10 +386,18 @@ end
 
 problem_object, system = model_initialize()
 
-bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
+#bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
+bounds = [(1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3)]
+log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
 f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för glukos
 
 timing_tests(problem_object, experimental_data, f)
 
+
 # run the parameter estimation
-#x_min, f_min = p_est(f, bounds, 20, false)
+x_min, f_min = p_est(f, log_bounds, 20, false)
+
+
+
+#Our best optimization this far
+[32.203309044650034, 742.783082678127, 10.000000000000002, 117.6717005960833, 999.9999999999998, 999.9999999999998, 119.24314784622099, 962.2327978439788, 820.4521588915686, 365.1251892441377, 872.2813535042653]

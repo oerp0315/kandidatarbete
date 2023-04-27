@@ -154,7 +154,7 @@ function check_gradient(f::Function, x)
     # if gradient differs more than a tolerance the gradient is not good enough and the code stops
     if any(abs.(grad_forwarddiff - grad_finitdiff) / min(abs(norm(grad_forwarddiff)), abs(norm(grad_finitdiff))) .> 1e-3)
         println("Gradient too unstable")
-        exit(1)
+        return Inf
     end
 end
 
@@ -301,7 +301,7 @@ end
 
 "Runs an optimization on function f in the region of bounds with n_samples number of samples.
 If running p_est through profile likelihood pl_mode should be true"
-function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
+function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
     if pl_mode == false
         # create a directory for parameter estimation
         if isdir("p_est_results") == false
@@ -312,6 +312,15 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
             data_file = open("p_est_results/data.csv", "w")
             truncate(data_file, 0)
             close(data_file)
+            data = DataFrame(Iterationnumber=[], 
+            Samplepoint=[],
+                Currentsample=[],
+                x_current = [],
+                Functionvalues=[],
+                Terminationcriteria=[],
+                Descentmethod=[],
+                Terminationreason=[])
+            CSV.write("p_est_results/data.csv", data, header=[:Iteration, :Samplepoint, :Currentsample, :x_current, :Functionvalues, :Terminationcriteria, :Descentmethod, :Terminationreason])
         end
 
         # Check if the time_log.csv exists and truncate it if it does
@@ -322,17 +331,13 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
         end
 
         # Generate Latin hypercube samples in the search space
-        x_samples = latin_hypercube(n_samples, bounds)
-
-        # logarithmize the samples
-        x_samples_log = log.(x_samples)
+        x_samples_log = latin_hypercube(n_samples, log_bounds)
     end
 
-    # transform bounds to log-scale
-    log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
-
     # if the gradient is not good enough the program will terminate
-    check_gradient(f, x_samples_log[1, :])
+    if check_gradient(f, x_samples_log[1, :]) ==Inf
+        return Inf
+    end
 
     # start values, set for first sample
     x_min = x_samples_log[1, :]
@@ -358,9 +363,10 @@ function p_est(f::Function, bounds, n_samples, pl_mode; x_samples_log=0)
 
         # only necessary if Profile likelihood is not currently used
         if pl_mode == false
-            data = DataFrame(Samplepoint=res.sample_num_list,
+            data = DataFrame(Iterationnumber=collect(1:length(res.sample_num_list)),
+                Samplepoint=res.sample_num_list,
                 Currentsample=res.x_current_sample_list,
-                Iteration=res.x_current_iter,
+                x_current =res.x_current_iter,
                 Functionvalues=res.function_values,
                 #Condnum=res.cond_num_list,
                 Terminationcriteria=res.term_criteria,

@@ -73,28 +73,22 @@ struct log_pl_results
 end
 
 "Perform profile likelihood analysis for one parameter"
-function profile_likelihood(params, param_index, bounds, num_points, threshold)
+function profile_likelihood(params, param_index, log_bounds, num_points, threshold)
     # list of indexes to be optimized
-    index_list = [i for i in 1:length(bounds) if i != param_index]
+    index_list = [i for i in 1:length(log_bounds) if i != param_index]
 
     # log-scale parameters
     log_params = log.(params)
 
-    # log-scale bounds
-    log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
-
     # new bounds
-    bounds_ = copy(bounds)
+    bounds_ = copy(log_bounds)
     current_bounds = deleteat!(bounds_, param_index)
 
     # new start values
-    x_samples = readdlm("p_est_results/latin_hypercube.csv", Float64)
+    log_x_samples = readdlm("p_est_results/latin_hypercube.csv", Float64)
 
     # remove the bound at the index of the parameter that is profiled
-    new_x_samples = hcat(x_samples[:, 1:param_index-1], x_samples[:, param_index+1:end])
-
-    # log-scale samples 
-    new_x_samples_log = log.(new_x_samples)
+    new_log_x_samples = hcat(log_x_samples[:, 1:param_index-1], log_x_samples[:, param_index+1:end])
 
     stop_flag = false
 
@@ -139,7 +133,7 @@ function profile_likelihood(params, param_index, bounds, num_points, threshold)
         cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, log_params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest
-        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true; x_samples_log=new_x_samples_log)
+        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true; x_samples_log=new_log_x_samples)
 
         # update logging lists with results
         if sign == -1
@@ -171,7 +165,7 @@ end
 
 "Run profile likelihood with the optimized parameters params, specifying how many steps can 
 maximally be made in each direction"
-function run_profile_likelihood(params, bounds, num_points, threshold)
+function run_profile_likelihood(params, log_bounds, num_points, threshold)
     # create a directory for profile likelihood
     if isdir("profilelikelihood_results") == false
         mkdir("profilelikelihood_results")
@@ -185,9 +179,9 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
     end
 
     # iterate over all parameters
-    for i in 1:length(bounds)
+    for i in 1:length(log_bounds)
         # run profile likelihood for the current parameter
-        pl_res = profile_likelihood(params, i, bounds, num_points, threshold)
+        pl_res = profile_likelihood(params, i, log_bounds, num_points, threshold)
 
         # create a DataFrame for the data to be logged
         data = DataFrame(Fixed_parameter_index=pl_res.fix_param_index,
@@ -201,8 +195,8 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 end
 
 function contourplot_2p()
-    x = collect(range(0.1, 4, length=100))
-    y = collect(range(0.1, 4, length=100))
+    x = collect(range(0.1, 2, length=100))
+    y = collect(range(0.1, 6, length=100))
     points = Vector{Vector{Float64}}(undef, length(x) * length(y))
 
     k = 1
