@@ -247,8 +247,8 @@ end
 with points at t_stop_points"
 function model_solver(_problem_object, θin, c0, t_stop)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-    solution = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
-    return solution
+    sol = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8)
+    return sol
 end
 
 "Takes number or vector and converts the elements to float64"
@@ -288,16 +288,16 @@ function ss_conc_calc(_problem_object, θin, c0)
     t_maximum = 10000 #Maximala tid att nå maximum
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)
     cb = DiscreteCallback(terminate_condition, terminate_affect!)
-    solution = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8)
-    if sol.retcode == :Failure
-        @warn "Failed solving ss ODE" maxlog = 10
+    sol = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8)
+    if sol.retcode ≠ :Success
+        @warn "Failed solving ss ODE, reason: $(sol.retcode)" maxlog = 10
         return Inf
     end
-    if solution.t == t_maximum
-        @warn "Lyckades inte nå jämnvikt i pre_equilibrium" maxlog = 10
+    if sol.t == t_maximum
+        @warn "Did not reach steady-state in pre_equilibrium in alloted time" maxlog = 10
         return Inf
     end
-    return solution.u[end]
+    return sol.u[end]
 end
 
 "Linear interpolation"
@@ -314,17 +314,22 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
     if c_eq == Inf
         return Inf
     end
-    #println(c_eq)
     error = 0
     for experiment in experimental_data
         θ[index_glucose] = convert.(eltype(θ), experiment.glucose_conc)
         sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
-        if sol.retcode == :Failure
-            @warn "Failed solving ODE" maxlog = 10
+        if sol.retcode ≠ :Success
+            if sol.retcode ≠ :DtLessThanMin
+                @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
+            end
             return Inf
         end
+        println(sol.t)
         for (index_time_data, t) in enumerate(experiment.t)
+            index_time_wrong_format = findfirst(isone, sol.t .>= t)
+            println("Index t1:$index_time_wrong_format t:$t")
             index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
+            println("Index t2:$index_time_model")
             if index_time_model == 1
                 c_t = sol.u[1]
             else
@@ -362,4 +367,4 @@ f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för
 timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
-x_min, f_min = p_est(f, bounds, 20, false)
+#x_min, f_min = p_est(f, bounds, 20, false)
