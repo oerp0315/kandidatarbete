@@ -54,8 +54,8 @@ Data02_mutant = [23.83 20.11
 timevalues_general = [0.0, 10.0, 20.0, 30.0, 40.0, 60.0, 120.0]
 timevalues_mutant = [0.0, 10.0, 27.0, 35.0, 60.0, 120.0]
 
-experiment1 = experiment_results(0.1, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
-experiment2 = experiment_results(2, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
+experiment1 = experiment_results(3.346e9, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
+experiment2 = experiment_results(6.685e10, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 #experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
 #experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
 
@@ -171,7 +171,8 @@ function model_initialize()
         D(Hxt1) ~ k_t_Hxt1 * mHXT1 - k_d_Hxt1 * Hxt1,
         D(Hxt2) ~ k_t_Hxt2 * mHXT2 - k_d_Hxt2 * Hxt2,
         D(Hxt3) ~ k_t_Hxt3 * mHXT3 - k_d_Hxt3 * Hxt3,
-        D(Hxt4) ~ 0 * (k_t_Hxt4 * mHXT4 - k_d_Hxt4 * Hxt4), D(Snf1) ~ k_t_Snf1 * mSNF1 - k_d_Snf1 * Snf1 - k_i_Snf1 * Snf1 * Cellular_glucose, #Bytt minus på sista termen
+        D(Hxt4) ~ k_t_Hxt4 * mHXT4 - k_d_Hxt4 * Hxt4,
+        D(Snf1) ~ k_t_Snf1 * mSNF1 - k_d_Snf1 * Snf1 - k_i_Snf1 * Snf1 * Cellular_glucose, #Bytt minus på sista termen
         D(Mig1) ~ k_t_Mig1 * mMIG1 - k_d_Mig1 * Mig1 - k_i_Mig1 * Mig1 * Snf1,
         D(Mig2) ~ k_t_Mig2 * mMIG2 - k_d_Mig2 * Mig2,
         D(Cellular_glucose) ~ V_transport_Hxt1 * Extracellular_glucose / (K_transport_Hxt1 + Extracellular_glucose) + V_transport_Hxt2 * Extracellular_glucose / (K_transport_Hxt2 + Extracellular_glucose) + V_transport_Hxt3 * Extracellular_glucose / (K_transport_Hxt3 + Extracellular_glucose) + V_transport_Hxt4 * Extracellular_glucose / (K_transport_Hxt4 + Extracellular_glucose) - k_p_ATP * Cellular_glucose,
@@ -234,6 +235,8 @@ function model_initialize()
         θ_activation => θin[11],
         Extracellular_glucose => θin[12]]
 
+    CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(system)))
+    CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:12), C=parameters(system)))
 
     tspan = (0.0, 10) #Tiden vi kör modellen under
     problem_object = ODEProblem(system, u0, tspan, p)  #Definierar vad som ska beräknas
@@ -286,8 +289,13 @@ function ss_conc_calc(_problem_object, θin, c0)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)
     cb = DiscreteCallback(terminate_condition, terminate_affect!)
     solution = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8)
+    if sol.retcode == :Failure
+        @warn "Failed solving ss ODE" maxlog = 10
+        return Inf
+    end
     if solution.t == t_maximum
         @warn "Lyckades inte nå jämnvikt i pre_equilibrium" maxlog = 10
+        return Inf
     end
     return solution.u[end]
 end
@@ -302,7 +310,11 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
     θ = exp.(logθ)
     insert!(θ, index_glucose, 0) #Problem med dualtal?
 
-    c_eq = ss_conc_calc(problem_object, θ, c_eq)  #c_eq är global variabel som uppdateras
+    c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
+    if c_eq == Inf
+        return Inf
+    end
+    #println(c_eq)
     error = 0
     for experiment in experimental_data
         θ[index_glucose] = convert.(eltype(θ), experiment.glucose_conc)
@@ -313,43 +325,41 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
         end
         for (index_time_data, t) in enumerate(experiment.t)
             index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
-
-            c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
-
+            if index_time_model == 1
+                c_t = sol.u[1]
+            else
+                c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
+            end
             for index_hxt = 1:4 #Kika
-                error += sum((c_t[5+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
+                #error += sum((c_t[5+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
+                error = 0
             end
         end
     end
     return error
 end
 
-function initial_test()
+function timing_tests(problem_object, experimental_data, f)
+    #Solve one time first to fix compliation time
     model_solver(problem_object, ones(12), zeros(24), 100)
     cost_function(problem_object, zeros(11), experimental_data, 3)
     ForwardDiff.gradient(f, ones(11))
     ForwardDiff.hessian(f, ones(11))
 
-    time_model_solver = @elapsed model_solver(problem_object, ones(12), zeros(24), 100, [])
+    time_model_solver = @elapsed model_solver(problem_object, ones(12), zeros(24), 100)
     time_cost_function = @elapsed cost_function(problem_object, zeros(11), experimental_data, 3)
     time_gradient = @elapsed ForwardDiff.gradient(f, ones(11))
     time_hessian = @elapsed ForwardDiff.hessian(f, ones(11))
-    data = DataFrame(time_model_solver=time_model_solver, time_cost_function=time_cost_function, time_gradient=time_gradient, time_hessian=time_hessian)
+    data = DataFrame(Function=["model_solver", "cost_function", "gradient", "hessian"], time=[time_model_solver, time_cost_function, time_gradient, time_hessian])
     CSV.write("ss_timer.csv", data)
 end
 
-initial_test()
-
 problem_object, system = model_initialize()
-
-global c_eq = zeros(24)
-
-CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(system)))
-CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:12), C=parameters(system)))
-
 
 bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
 f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för glukos
+
+timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
 x_min, f_min = p_est(f, bounds, 20, false)
