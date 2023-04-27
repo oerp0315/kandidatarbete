@@ -396,7 +396,7 @@ end
 
 # Define the function to optimize
 #f(x) = cost_function(problem_object, x, experimental_data)
-f(x) = cost_function(problem_object, x, experimental_data) #, 3) # 3 är index för glukos
+f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för glukos
 
 
 
