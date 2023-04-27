@@ -201,8 +201,8 @@ function run_profile_likelihood(params, bounds, num_points, threshold)
 end
 
 function contourplot_2p()
-    x = collect(range(0.1, 2, length=100))
-    y = collect(range(0.1, 6, length=100))
+    x = collect(range(0.1, 4, length=100))
+    y = collect(range(0.1, 4, length=100))
     points = Vector{Vector{Float64}}(undef, length(x) * length(y))
 
     k = 1
