@@ -153,7 +153,7 @@ function random_dataset_generator(problem_object, number_of_experiments, θin; s
     experimental_data = []
     for i = 1:number_of_experiments
         Random.seed!(10 * i)
-        t_final_data = 1 * rand() #Genererar slumpmässiga sluttider
+        t_final_data = rand() #Genererar slumpmässiga sluttider
         c0_data = rand!(zeros(length(problem_object.u0))) #Genererar slumpmässiga intial koncentrationer
         c_final_data = experimenter(problem_object, t_final_data, c0_data, standard_deviation, θin)
         current_data = experiment_results(c0_data, c_final_data, t_final_data)
@@ -163,9 +163,9 @@ function random_dataset_generator(problem_object, number_of_experiments, θin; s
 end
 
 function plot_exact_example(problem_object, θin)
-    c0 = [0.5, 0, 0.5] #Intialkoncentrationer
+    c0 = [0.5, 0.0] #Intialkoncentrationer
     sol = model_solver(problem_object, θin, c0, 1) #Kör modellen
-    plot!(sol) #Plottar lösningen
+    plot(sol, xaxis="Tid (s)", yaxis="Koncentration", label=[L"c_{A}" L"c_{B}"], legendfontsize=12) #Plottar lösningen
     savefig("exact_ex.png")
 end
 
@@ -178,11 +178,11 @@ end
 
 #problem_object = model_2p_v2_initialize()
 #experimental_data = random_dataset_generator(problem_object, 100, [1.0, 3.0])
-#bounds = [(0.1, 6), (0.1, 6)]
+#bounds = [(0.1, 4), (0.1, 4)]
 
 problem_object = model_2p_initialize()
-experimental_data = random_dataset_generator(problem_object, 10, [1, 0.5])
-bounds = [(0.1, 2), (0.1, 2)]
+experimental_data = random_dataset_generator(problem_object, 50, [3.0, 3.0])
+bounds = [(0.01, 6), (0.01, 6)]
 
 #problem_object = model_4p_initialize()
 #experimental_data = random_dataset_generator(problem_object, 100, [1.0, 0.5, 3.0, 10.0])
@@ -191,9 +191,9 @@ bounds = [(0.1, 2), (0.1, 2)]
 f(x) = cost_function(problem_object, x, experimental_data)
 
 # run the parameter estimation
-x_min, f_min = p_est(f, bounds, 100, false)
+x_min, f_min = p_est(f, bounds, 10, false)
 
-#plot_exact_example(problem_object, [1 0.5 3 10])
+plot_exact_example(problem_object, [3.0, 3.0])
 #plot_experiment(experimental_data)
 
 # Define the initial parameter values
@@ -208,4 +208,4 @@ CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=thresho
 
 run_profile_likelihood(params, bounds, num_points, threshold)
 
-#contourplot_2p()
+contourplot_2p()
