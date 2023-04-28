@@ -72,70 +72,44 @@ function steepest_descent(f::Function, grad, x, log_bounds)
 end
 
 "Generate samples according to latin square method with same dimentions as bounds"
-function latin_hypercube(n_samples, bounds; seed=123)
+function latin_hypercube(n_samples, log_bounds; seed=123)
     # fix seed
     Random.seed!(seed)
 
-    # make a folder for the result of parameter estimation
-    if isdir("p_est_results") == false
-        mkdir("p_est_results")
+    n_vars = length(log_bounds)
+
+    # Initialize the Latin square as an n-by-n array of zeros
+    square = zeros(Int, n_samples, n_samples)
+
+    # Fill the first row with random integers between 1 and n
+    square[1, :] = randperm(n_samples)
+
+    # Fill the remaining rows with shifted copies of the first row
+    for i in 2:n_samples
+        square[i, :] = circshift(square[i-1, :], 1)
     end
 
-    n_vars = length(bounds)
+    # create random values to be added to sample values
+    random_matrix = rand(n_samples, n_vars)
 
-    # previous bounds
-    if isfile("p_est_results/bounds.csv")
-        read_previous_bounds = CSV.File("p_est_results/bounds.csv") |> DataFrame
-        previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
+    # create a matrix where samples will be inserted to
+    samples = zeros(n_samples, n_vars)
+
+    # generate samples with random position within varible intervals
+    for i in 1:n_samples
+        for j in 1:n_vars
+            samples[i, j] = (square[i, j] - 1) / ((n_samples - 1) * (n_samples / (n_samples - 1))) + random_matrix[i, j] / n_samples
+        end
     end
 
-    # if identical settings as previously, use the same samples. Otherwise create new samples
-    if isfile("p_est_results/bounds.csv") && bounds == previous_bounds &&
-       length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
-
-        return readdlm("p_est_results/latin_hypercube.csv", Float64)
-    else
-        # Initialize the Latin square as an n-by-n array of zeros
-        square = zeros(Int, n_samples, n_samples)
-
-        # Fill the first row with random integers between 1 and n
-        square[1, :] = randperm(n_samples)
-
-        # Fill the remaining rows with shifted copies of the first row
-        for i in 2:n_samples
-            square[i, :] = circshift(square[i-1, :], 1)
+    # scale samples to bounds
+    for i in 1:n_samples
+        for j in 1:n_vars
+            samples[i, j] = (log_bounds[j][2] - log_bounds[j][1]) * samples[i, j] + log_bounds[j][1]
         end
-
-        # create random values to be added to sample values
-        random_matrix = rand(n_samples, n_vars)
-
-        # create a matrix where samples will be inserted to
-        samples = zeros(n_samples, n_vars)
-
-        # generate samples with random position within varible intervals
-        for i in 1:n_samples
-            for j in 1:n_vars
-                samples[i, j] = (square[i, j] - 1) / ((n_samples - 1) * (n_samples / (n_samples - 1))) + random_matrix[i, j] / n_samples
-            end
-        end
-
-        # scale samples to bounds
-        for i in 1:n_samples
-            for j in 1:n_vars
-                samples[i, j] = (bounds[j][2] - bounds[j][1]) * samples[i, j] + bounds[j][1]
-            end
-        end
-
-        # save generated samples in file
-        open("p_est_results/latin_hypercube.csv", "w") do io
-            writedlm(io, samples)
-        end
-
-        # log used bounds
-        CSV.write("p_est_results/bounds.csv", DataFrame(bounds))
-
-        return samples
     end
+
+    return samples
 end
 
 "Remove elements in a vector equal to zeros"
@@ -312,10 +286,10 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             data_file = open("p_est_results/data.csv", "w")
             truncate(data_file, 0)
             close(data_file)
-            data = DataFrame(Iterationnumber=[], 
-            Samplepoint=[],
+            data = DataFrame(Iterationnumber=[],
+                Samplepoint=[],
                 Currentsample=[],
-                x_current = [],
+                x_current=[],
                 Functionvalues=[],
                 Terminationcriteria=[],
                 Descentmethod=[],
@@ -330,12 +304,57 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             close(timelog_file)
         end
 
-        # Generate Latin hypercube samples in the search space
-        x_samples_log = latin_hypercube(n_samples, log_bounds)
+        # previous bounds
+        if isfile("p_est_results/bounds.csv")
+            read_previous_bounds = CSV.File("p_est_results/bounds.csv") |> DataFrame
+            previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
+
+            if log_bounds == previous_bounds && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
+                x_samples_log = readdlm("p_est_results/latin_hypercube.csv", Float64)
+            end
+        else
+            # Failed samples
+            fail_samples = []
+
+            # Successful samples
+            success_samples = []
+
+            # function value list
+            function_values = []
+
+            # Generate Latin hypercube samples in the search space
+            x_samples_log = latin_hypercube(n_samples, log_bounds)
+
+            while length(success_samples) < n_samples
+                for sample in eachrow(x_samples_log)
+                    if f(sample) == Inf && length(success_samples) < n_samples
+                        push!(fail_samples, sample)
+                    elseif length(success_samples) < n_samples
+                        push!(success_samples, sample)
+                        push!(function_values, f(sample))
+                    end
+                end
+                if n_samples - length(success_samples) < length(bounds)
+                    x_samples_log = latin_hypercube(20, log_bounds)
+                else
+                    x_samples_log = latin_hypercube(n_samples - length(success_samples), log_bounds)
+                end
+            end
+
+            # save generated samples in file
+            open("p_est_results/latin_hypercube.csv", "w") do io
+                writedlm(io, success_samples)
+            end
+
+            # log used bounds
+            CSV.write("p_est_results/bounds.csv", DataFrame(log_bounds))
+        end
     end
 
+    exit(1)
+
     # if the gradient is not good enough the program will terminate
-    if check_gradient(f, x_samples_log[1, :]) ==Inf
+    if check_gradient(f, x_samples_log[1, :]) == Inf
         return Inf
     end
 
@@ -351,6 +370,9 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
     iter = 0
 
     if !pl_mode
+        iter_res = zeros(n_samples)
+        x_sample_list = zeros(n_samples)
+        x_iter_min_list = zeros(n_samples)
         f_min_list::Vector{Float64} = zeros(n_samples)
     end
 
@@ -366,7 +388,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             data = DataFrame(Iterationnumber=collect(1:length(res.sample_num_list)),
                 Samplepoint=res.sample_num_list,
                 Currentsample=res.x_current_sample_list,
-                x_current =res.x_current_iter,
+                x_current=res.x_current_iter,
                 Functionvalues=res.function_values,
                 #Condnum=res.cond_num_list,
                 Terminationcriteria=res.term_criteria,
@@ -379,6 +401,9 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             # log time for each sample point
             CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
 
+            #iter_res[sample_num] = zeros(n_samples)
+            x_sample_list[sample_num] = x
+            x_iter_min_list[sample_num] = x_current_min
             f_min_list[sample_num] = f_current_min
         end
 
@@ -393,7 +418,10 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
 
     if !pl_mode
 
-        CSV.write("p_est_results/waterfall_data.csv", DataFrame(f_min_list=f_min_list))
+        CSV.write("p_est_results/waterfall_data.csv", DataFrame(sample_num=collect(1:length(x_sample_list)),
+            x_sample_list=x_sample_list,
+            x_iter_min_list=x_iter_min_list,
+            f_min_list=f_min_list))
 
         CSV.write("p_est_results/opt_point.csv", DataFrame(x_min=[x_min], f_min=f_min))
     end
