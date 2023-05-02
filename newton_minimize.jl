@@ -56,6 +56,8 @@ function steepest_descent(f::Function, grad, x, log_bounds)
     dir = -grad / norm(grad)
     alpha, is_descent_direction = line_step_search(f, x, dir)
 
+    x_old = copy(x)
+
     # calculate next point and ensure point is within bounds, project back if that is the case
     if is_descent_direction
         x += alpha * dir
@@ -66,6 +68,11 @@ function steepest_descent(f::Function, grad, x, log_bounds)
                 x[i] = log_bounds[i][2]
             end
         end
+    end
+
+    if f(x) > f(x_old)
+        is_descent_direction = false
+        x = x_old
     end
 
     return x, is_descent_direction
@@ -140,7 +147,7 @@ struct log_results
     function_values::Vector{Float64}
     term_criteria::Vector{Union{Float64,AbstractArray,String}}
     term_reason::Vector{Union{Float64,String}}
-    descent_method::Vector{Union{Float64,AbstractArray,String}}
+    #descent_method::Vector{Union{Float64,AbstractArray,String}}
     #cond_num_list::AbstractVector{Union{Float64,String}}
     time_log::Vector{Float64}
 end
@@ -154,7 +161,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     function_values::Vector{Float64} = zeros(max_iter + 1)
     term_criteria::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
     term_reason::Vector{Union{Float64,String}} = zeros(max_iter + 1)
-    descent_method::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
+    #descent_method::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
     #cond_num_list::AbstractVector{Union{Float64,String}} = zeros(max_iter + 1)
     time_log::Vector{Float64} = zeros(1)
 
@@ -171,7 +178,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     x_current_iter[1] = exp.(x)
     function_values[1] = func_val
     term_criteria[1] = "start point, no termination criteria"
-    descent_method[1] = "start point, not descended yet"
+    #descent_method[1] = "start point, not descended yet"
     #cond_num_list[1] = "start point, no condition number"
     term_reason[1] = "start point, no reason for temination"
 
@@ -200,7 +207,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         is_descent_direction::Bool = false
 
         # initiate a list for logging the descent method used for an optimization step
-        current_descent_method = []
+        #current_descent_method = []
 
         # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
         #=if isposdef(hess)
@@ -212,7 +219,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         #if !is_descent_direction #tror inte detta behöver vara i en if_sats längre
         x, is_descent_direction = steepest_descent(f, grad, x, log_bounds)
         #logging the used descent method
-        push!(current_descent_method, "Steepest descent")
+        #push!(current_descent_method, "Steepest descent")
 
         #end 
 
@@ -249,7 +256,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         x_current_iter[i+1] = exp.(x)
         function_values[i+1] = f(x)
         term_criteria[i+1] = current_term_criteria
-        descent_method[i+1] = current_descent_method
+        #descent_method[i+1] = current_descent_method
         #cond_num_list[i+1] = cond_num
 
         # Checks if two or more of the termination criteria are met
@@ -271,7 +278,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         remove_zeros(function_values),
         remove_zeros(term_criteria),
         remove_zeros(term_reason),
-        remove_zeros(descent_method),
+        #remove_zeros(descent_method),
         #remove_zeros(cond_num_list),
         time_log)
 
@@ -395,7 +402,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
                 Functionvalues=res.function_values,
                 #Condnum=res.cond_num_list,
                 Terminationcriteria=res.term_criteria,
-                Descentmethod=res.descent_method,
+                #Descentmethod=res.descent_method,
                 Terminationreason=res.term_reason)
 
             # modifying the content of data.csv using write method
