@@ -175,9 +175,14 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     #cond_num_list[1] = "start point, no condition number"
     term_reason[1] = "start point, no reason for temination"
 
+    min_iter = 0
+
     time = @elapsed for i in 1:max_iter
         # increment interation number used for printing current iteration number
         iter += 1
+
+        # increment iteration number for current sample, resets for each sample
+        min_iter += 1
 
         # print sample number and interation number 
         println("Iteration number: ", iter, ", Sample number: ", sample_num)
@@ -270,7 +275,7 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         #remove_zeros(cond_num_list),
         time_log)
 
-    return res, iter, x, res.x_current_iter[end], res.function_values[end]
+    return res, iter, min_iter, x, res.x_current_iter[end], res.function_values[end]
 end
 
 "Runs an optimization on function f in the region of bounds with n_samples number of samples.
@@ -351,8 +356,6 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
         end
     end
 
-    exit(1)
-
     # if the gradient is not good enough the program will terminate
     if check_gradient(f, x_samples_log[1, :]) == Inf
         return Inf
@@ -381,7 +384,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
         sample_num += 1
 
         # minimizes the cost function for the current start-guess
-        res, iter, x, x_current_min, f_current_min = opt(f::Function, x, sample_num, iter, log_bounds)
+        res, iter, min_iter, x, x_current_min, f_current_min = opt(f::Function, x, sample_num, iter, log_bounds)
 
         # only necessary if Profile likelihood is not currently used
         if pl_mode == false
@@ -401,7 +404,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             # log time for each sample point
             CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
 
-            #iter_res[sample_num] = zeros(n_samples)
+            iter_res[sample_num] = min_iter
             x_sample_list[sample_num] = x
             x_iter_min_list[sample_num] = x_current_min
             f_min_list[sample_num] = f_current_min
@@ -419,6 +422,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
     if !pl_mode
 
         CSV.write("p_est_results/waterfall_data.csv", DataFrame(sample_num=collect(1:length(x_sample_list)),
+            min_iter=iter_res,
             x_sample_list=x_sample_list,
             x_iter_min_list=x_iter_min_list,
             f_min_list=f_min_list))
