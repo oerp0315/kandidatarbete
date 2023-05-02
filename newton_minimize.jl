@@ -56,7 +56,7 @@ function steepest_descent(f::Function, grad, x, log_bounds)
     dir = -grad / norm(grad)
     alpha, is_descent_direction = line_step_search(f, x, dir)
 
-    x_old = copy(x)
+    x_old = x
 
     # calculate next point and ensure point is within bounds, project back if that is the case
     if is_descent_direction
@@ -364,7 +364,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
                 end
             end
 
-            x_samples_log = success_samples
+            x_samples_log = Matrix(success_samples)
 
             # save generated samples in file
             open("p_est_results/latin_hypercube.csv", "w") do io
@@ -376,12 +376,10 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
         end
     end
 
-
-    println(x_samples_log)
     # if the gradient is not good enough the program will terminate
-    if check_gradient(f, x_samples_log[1, :]) == Inf
+    """if check_gradient(f, x_samples_log[1, :]) == Inf
         return Inf
-    end
+    end"""
 
     # start values, set for first sample
     x_min = x_samples_log[1, :]
