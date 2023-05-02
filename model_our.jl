@@ -22,7 +22,7 @@ struct experiment_results
 end
 
 index_general = [1, 1, 2, 2, 3, 3, 4, 4]
-index_mutant = [2, 2]
+index_mutant = [4, 4]
 
 Data01_glucose = [0.74 0.1 0.06 0.05 0.76 0.13 23.02 26.98
     1.83 0.52 0.1 0.06 0.85 0.33 29.55 36.75
@@ -54,19 +54,17 @@ Data02_mutant = [23.83 20.11
 timevalues_general = [0.0, 10.0, 20.0, 30.0, 40.0, 60.0, 120.0]
 timevalues_mutant = [0.0, 10.0, 27.0, 35.0, 60.0, 120.0]
 
-experiment1 = experiment_results(3.346e9, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
-experiment2 = experiment_results(6.685e10, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
-
+experiment1 = experiment_results(3.346e8, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
+experiment2 = experiment_results(6.685e9, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
 #experiment1 = experiment_results(1, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
 #experiment2 = experiment_results(1, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
+experiment3 = experiment_results(3.346e8, index_mutant,Data01_mutant, timevalues_mutant)
+experiment4 = experiment_results(0.2, index_mutant, Data02_mutant, timevalues_mutant)
 
-#experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
-#experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
-
-experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
-#experimental_data = [experiment1, experiment2,experiment3,experiment4]
+#experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
+experimental_data = [experiment1, experiment2,experiment3,experiment4]
 
 "Constructs the model
 return a problem_object"
@@ -356,7 +354,8 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
                 else
                     c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
                 end
-                for index_hxt = 1:4 #Kika
+                for index_hxt = experiment.hxt_types #Kika
+
                     error += sum((c_t[5+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
                     #error = 0
                 end
