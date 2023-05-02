@@ -13,7 +13,7 @@ function plot_pl()
         sample_number = sample_number.fixed_parameter_index
 
         # plot profile likelihood
-        plot(group[!, :fixed_parameter], group[!, :cost_function_values], xaxis=L"$\theta_%$sample_number$", yaxis="Cost function", legend=false, lc=:black, lw=2, labelfontsize=15)
+        plot(group[!, :fixed_parameter], group[!, :cost_function_values], xaxis=L"$\theta_%$sample_number$", yaxis="Kostnadsfunktion", legend=false, lc=:black, lw=2, labelfontsize=15)
 
         # plot threshold
         x = collect(Float64, range(group[!, :fixed_parameter][1], group[!, :fixed_parameter][end], length=2))
@@ -26,12 +26,12 @@ function plot_pl()
 end
 
 function plot_waterfall()
-    data = CSV.read("p_est_results/waterfall_data.csv", DataFrame, types=Float64)
+    data = CSV.read("p_est_results/sample_data.csv", DataFrame, types=Float64)
     sort!(data)
-    y = data[:, 1]
+    y = data[:, 5]
     x = collect(1:length(y))
 
-    plot(x, y, xaxis="Startvärden", yaxis="Kostnadsfunktion", legend=false)
+    plot(x, y, xaxis="Startvärden", yaxis="Kostnadsfunktion", lw=2, labelfontsize=15, legend=false)
     savefig("p_est_results/waterfall_plot")
 
     n_convergent_samples = 0

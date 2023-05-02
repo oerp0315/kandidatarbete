@@ -309,6 +309,12 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             CSV.write("p_est_results/data.csv", data, header=[:Iteration, :Samplepoint, :Currentsample, :x_current, :Functionvalues, :Terminationcriteria, :Descentmethod, :Terminationreason])
         end
 
+        if isfile("p_est_results/sample_data.csv")
+            waterfall_file = open("p_est_results/sample_data.csv", "w")
+            truncate(waterfall_file, 0)
+            close(waterfall_file)
+        end
+
         # Check if the time_log.csv exists and truncate it if it does
         if isfile("p_est_results/time_log.csv")
             timelog_file = open("p_est_results/time_log.csv", "w")
@@ -316,15 +322,20 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             close(timelog_file)
         end
 
+        need_new_samples = true
+
         # previous bounds
         if isfile("p_est_results/bounds.csv")
             read_previous_bounds = CSV.File("p_est_results/bounds.csv") |> DataFrame
             previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
 
-            if log_bounds == previous_bounds && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
+            if log_bounds == previous_bounds
                 x_samples_log = readdlm("p_est_results/latin_hypercube.csv", Float64)
+                need_new_samples = false
             end
-        else
+        end
+
+        if need_new_samples
             # Failed samples
             fail_samples = []
 
@@ -353,9 +364,11 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
                 end
             end
 
+            x_samples_log = success_samples
+
             # save generated samples in file
             open("p_est_results/latin_hypercube.csv", "w") do io
-                writedlm(io, success_samples)
+                writedlm(io, x_samples_log)
             end
 
             # log used bounds
@@ -363,6 +376,8 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
         end
     end
 
+
+    println(x_samples_log)
     # if the gradient is not good enough the program will terminate
     if check_gradient(f, x_samples_log[1, :]) == Inf
         return Inf
@@ -380,9 +395,9 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
     iter = 0
 
     if !pl_mode
-        iter_res = zeros(n_samples)
-        x_sample_list = zeros(n_samples)
-        x_iter_min_list = zeros(n_samples)
+        iter_res::Vector{Int64} = zeros(n_samples)
+        x_sample_list::Vector{Union{Float64,AbstractArray}} = zeros(n_samples)
+        x_iter_min_list::Vector{Union{Float64,AbstractArray}} = zeros(n_samples)
         f_min_list::Vector{Float64} = zeros(n_samples)
     end
 
@@ -410,7 +425,6 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
 
             # log time for each sample point
             CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
-
             iter_res[sample_num] = min_iter
             x_sample_list[sample_num] = x
             x_iter_min_list[sample_num] = x_current_min
@@ -428,7 +442,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
 
     if !pl_mode
 
-        CSV.write("p_est_results/waterfall_data.csv", DataFrame(sample_num=collect(1:length(x_sample_list)),
+        CSV.write("p_est_results/sample_data.csv", DataFrame(sample_num=collect(1:length(x_sample_list)),
             min_iter=iter_res,
             x_sample_list=x_sample_list,
             x_iter_min_list=x_iter_min_list,

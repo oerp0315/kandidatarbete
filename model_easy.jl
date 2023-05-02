@@ -165,7 +165,7 @@ end
 function plot_exact_example(problem_object, θin)
     c0 = [0.5, 0.0] #Intialkoncentrationer
     sol = model_solver(problem_object, θin, c0, 1) #Kör modellen
-    plot(sol, xaxis="Tid (s)", yaxis="Koncentration", label=[L"c_{A}" L"c_{B}"], legendfontsize=12) #Plottar lösningen
+    plot(sol, xaxis="Tid (s)", yaxis="Koncentration", label=[L"c_{A}" L"c_{B}"], lw=2, legendfontsize=15, labelfontsize=15) #Plottar lösningen
     savefig("exact_ex.png")
 end
 
@@ -182,7 +182,9 @@ end
 
 problem_object = model_2p_initialize()
 experimental_data = random_dataset_generator(problem_object, 50, [3.0, 3.0])
+
 bounds = [(0.01, 6), (0.01, 6)]
+log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
 
 #problem_object = model_4p_initialize()
 #experimental_data = random_dataset_generator(problem_object, 100, [1.0, 0.5, 3.0, 10.0])
@@ -191,7 +193,7 @@ bounds = [(0.01, 6), (0.01, 6)]
 f(x) = cost_function(problem_object, x, experimental_data)
 
 # run the parameter estimation
-x_min, f_min = p_est(f, bounds, 10, false)
+x_min, f_min = p_est(f, log_bounds, 10, false)
 
 plot_exact_example(problem_object, [3.0, 3.0])
 #plot_experiment(experimental_data)

@@ -199,7 +199,7 @@ function run_profile_likelihood(params, log_bounds, num_points, threshold)
 end
 
 function contourplot_2p()
-    x = collect(range(0.1, 2, length=100))
+    x = collect(range(0.1, 6, length=100))
     y = collect(range(0.1, 6, length=100))
     points = Vector{Vector{Float64}}(undef, length(x) * length(y))
 
@@ -224,6 +224,6 @@ function contourplot_2p()
             index += 1 # increment index for next element in vector
         end
     end
-    contour(x, y, xaxis=L"\theta_1", yaxis=L"\theta_2", A)
+    contour(x, y, A, xaxis=L"\theta_1", yaxis=L"\theta_2", colorbar_title="Kostnadsfunktion", labelfontsize=15, colorbar_titlefont=font(15))
     savefig("plot_2d.png")
 end
