@@ -30,27 +30,6 @@ function line_step_search(f::Function, x, dir; alpha=1.0)
     return alpha, is_descent_direction
 end
 
-#= Newton method used to find a point in a descending direction
-function newton_method(f::Function, grad, hess, x, log_bounds)
-    dir = -hess \ grad
-    # obtain step size alpha
-    alpha, is_descent_direction = line_step_search(f, x, dir)
-
-    # calculate next point and ensure point is within bounds, project back if that is the case
-    if is_descent_direction
-        x += alpha * dir
-        for i in eachindex(log_bounds)
-            if x[i] < log_bounds[i][1]
-                x[i] = log_bounds[i][1]
-            elseif x[i] > log_bounds[i][2]
-                x[i] = log_bounds[i][2]
-            end
-        end
-    end
-
-    return x, is_descent_direction
-end =#
-
 #Alternative method to find a point in a descending direction
 function steepest_descent(f::Function, grad, x, log_bounds)
     dir = -grad / norm(grad)
@@ -147,8 +126,6 @@ struct log_results
     function_values::Vector{Float64}
     term_criteria::Vector{Union{Float64,AbstractArray,String}}
     term_reason::Vector{Union{Float64,String}}
-    #descent_method::Vector{Union{Float64,AbstractArray,String}}
-    #cond_num_list::AbstractVector{Union{Float64,String}}
     time_log::Vector{Float64}
 end
 
@@ -161,15 +138,12 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     function_values::Vector{Float64} = zeros(max_iter + 1)
     term_criteria::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
     term_reason::Vector{Union{Float64,String}} = zeros(max_iter + 1)
-    #descent_method::Vector{Union{Float64,AbstractArray,String}} = zeros(max_iter + 1)
-    #cond_num_list::AbstractVector{Union{Float64,String}} = zeros(max_iter + 1)
     time_log::Vector{Float64} = zeros(1)
 
     x_current_samplepoint = x
 
-    # calculate hessian etc. for first point
+    # calculate gradient for first point
     grad = ForwardDiff.gradient(f, x)
-    #hess = ForwardDiff.hessian(f, x)
     func_val = f(x)
 
     # logging for first x
@@ -178,8 +152,6 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
     x_current_iter[1] = exp.(x)
     function_values[1] = func_val
     term_criteria[1] = "start point, no termination criteria"
-    #descent_method[1] = "start point, not descended yet"
-    #cond_num_list[1] = "start point, no condition number"
     term_reason[1] = "start point, no reason for temination"
 
     min_iter = 0
@@ -198,30 +170,13 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         grad = ForwardDiff.gradient(f, x)
         #hess = ForwardDiff.hessian(f, x)
 
-        # calculate condtion number
-        #cond_num = cond(hess)
-
         # To compare with the current x in termination criteria 
         x_prev = x
 
         is_descent_direction::Bool = false
 
-        # initiate a list for logging the descent method used for an optimization step
-        #current_descent_method = []
-
-        # Depending on if the hessian is positive definite or not, either newton or steepest descent is used
-        #=if isposdef(hess)
-            x, is_descent_direction = newton_method(f, grad, hess, x, log_bounds)
-            #logging the used descent method
-            push!(current_descent_method, "Newton method")
-        end =#
-
-        #if !is_descent_direction #tror inte detta behöver vara i en if_sats längre
+        # calculate the next point via steepest descent method
         x, is_descent_direction = steepest_descent(f, grad, x, log_bounds)
-        #logging the used descent method
-        #push!(current_descent_method, "Steepest descent")
-
-        #end 
 
         #= if a descent direction could not be found, the optmimization of the current sample is terminated
         and continue with the next =#
@@ -256,8 +211,6 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         x_current_iter[i+1] = exp.(x)
         function_values[i+1] = f(x)
         term_criteria[i+1] = current_term_criteria
-        #descent_method[i+1] = current_descent_method
-        #cond_num_list[i+1] = cond_num
 
         # Checks if two or more of the termination criteria are met
         if length(current_term_criteria) >= 2
@@ -278,8 +231,6 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
         remove_zeros(function_values),
         remove_zeros(term_criteria),
         remove_zeros(term_reason),
-        #remove_zeros(descent_method),
-        #remove_zeros(cond_num_list),
         time_log)
 
     return res, iter, min_iter, x, res.x_current_iter[end], res.function_values[end]
@@ -329,7 +280,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             read_previous_bounds = CSV.File("p_est_results/bounds.csv") |> DataFrame
             previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
 
-            if log_bounds == previous_bounds
+            if log_bounds == previous_bounds && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
                 x_samples_log = readdlm("p_est_results/latin_hypercube.csv", Float64)
                 need_new_samples = false
             end
@@ -364,7 +315,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
                 end
             end
 
-            x_samples_log = Matrix(success_samples)
+            x_samples_log = success_samples
 
             # save generated samples in file
             open("p_est_results/latin_hypercube.csv", "w") do io
@@ -413,9 +364,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
                 Currentsample=res.x_current_sample_list,
                 x_current=res.x_current_iter,
                 Functionvalues=res.function_values,
-                #Condnum=res.cond_num_list,
                 Terminationcriteria=res.term_criteria,
-                #Descentmethod=res.descent_method,
                 Terminationreason=res.term_reason)
 
             # modifying the content of data.csv using write method

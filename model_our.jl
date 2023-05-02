@@ -60,7 +60,6 @@ experiment2 = experiment_results(6.685e9, index_general, Data02_glucose, timeval
 #experiment1 = experiment_results(1, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
 #experiment2 = experiment_results(1, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
-
 #experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
 #experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
 
@@ -397,7 +396,7 @@ timing_tests(problem_object, experimental_data, f)
 
 
 # run the parameter estimation
-time = @elapsed x_min, f_min = p_est(f, log_bounds, 20, false)
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 100, false)
 println(time)
 
 

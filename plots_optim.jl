@@ -26,9 +26,9 @@ function plot_pl()
 end
 
 function plot_waterfall()
-    data = CSV.read("p_est_results/sample_data.csv", DataFrame, types=Float64)
-    sort!(data)
+    data = CSV.read("p_est_results/sample_data.csv", DataFrame)
     y = data[:, 5]
+    sort!(y)
     x = collect(1:length(y))
 
     plot(x, y, xaxis="Startvärden", yaxis="Kostnadsfunktion", lw=2, labelfontsize=15, legend=false)
