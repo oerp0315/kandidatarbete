@@ -29,11 +29,15 @@ function new_point(log_param_last, param_index, log_bounds, sign, threshold; q=1
             cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last))
         end
     elseif cond_val <= q * threshold
+        i = 0
         while cond_val <= q * threshold
+            i += 1
             step_size[param_index] *= 2
             cond_val = abs(f(log_param_last + sign * step_size) - f(log_param_last))
             if cond_val > q * threshold
                 step_size[param_index] /= 2
+                break
+            elseif i > 20
                 break
             end
         end
