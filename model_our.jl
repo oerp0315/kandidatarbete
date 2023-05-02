@@ -22,7 +22,7 @@ struct experiment_results
 end
 
 index_general = [1, 1, 2, 2, 3, 3, 4, 4]
-index_mutant = [2, 2]
+index_mutant = [4, 4]
 
 Data01_glucose = [0.74 0.1 0.06 0.05 0.76 0.13 23.02 26.98
     1.83 0.52 0.1 0.06 0.85 0.33 29.55 36.75
@@ -54,19 +54,17 @@ Data02_mutant = [23.83 20.11
 timevalues_general = [0.0, 10.0, 20.0, 30.0, 40.0, 60.0, 120.0]
 timevalues_mutant = [0.0, 10.0, 27.0, 35.0, 60.0, 120.0]
 
-experiment1 = experiment_results(3.346e9, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
-experiment2 = experiment_results(6.685e10, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
-
+experiment1 = experiment_results(3.346e8, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
+experiment2 = experiment_results(6.685e9, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
 #experiment1 = experiment_results(1, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
 #experiment2 = experiment_results(1, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
+experiment3 = experiment_results(3.346e8, index_mutant,Data01_mutant, timevalues_mutant)
+experiment4 = experiment_results(0.2, index_mutant, Data02_mutant, timevalues_mutant)
 
-#experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
-#experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
-
-experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
-#experimental_data = [experiment1, experiment2,experiment3,experiment4]
+#experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
+experimental_data = [experiment1, experiment2,experiment3,experiment4]
 
 "Constructs the model
 return a problem_object"
@@ -187,7 +185,8 @@ function model_initialize()
         D(mSNF3) ~ -k_d_mSNF3 * mSNF3 + V_mSNF3 / (1 + θ_Mig1_Snf3 * Mig1) / (1 + θ_Mig2_Snf3 * Mig2),
         D(mSTD1) ~ -k_d_mSTD1 * mSTD1 + V_mSTD1 / (1 + θ_Rgt1_active_Std1 * Rgt1_active),
         D(mMTH1) ~ -k_d_mMTH1 * mMTH1 + V_mMTH1 / (1 + θ_Rgt1_active_MTH1 * Rgt1_active) / (1 + θ_Mig1_MTH1 * Mig1) / (1 + θ_Mig2_MTH1 * Mig2),
-        D(mRGT1) ~ -k_d_mRGT1 * mRGT1 + V_mRGT1, D(mHXT1) ~ -k_d_mHXT1 * mHXT1 + V_mHXT1 * (T_mHXT1 + ((1 - T_mHXT1) * θ_activation * Rgt1) / (1 + θ_activation * Rgt1)) / (1 + θ_Rgt1_active_HXT1 * Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
+        D(mRGT1) ~ -k_d_mRGT1 * mRGT1 + V_mRGT1, 
+        D(mHXT1) ~ -k_d_mHXT1 * mHXT1 + V_mHXT1 * (T_mHXT1 + ((1 - T_mHXT1) * θ_activation * Rgt1) / (1 + θ_activation * Rgt1)) / (1 + θ_Rgt1_active_HXT1 * Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
         D(mHXT2) ~ -k_d_mHXT2 * mHXT2 + V_mHXT2 / (1 + θ_Rgt1_active_HXT2 * Rgt1_active) / (1 + θ_Mig1_HXT2 * Mig1) / (1 + θ_Mig2_HXT2 * Mig2),
         D(mHXT3) ~ -k_d_mHXT3 * mHXT3 + V_mHXT3 / (1 + θ_Rgt1_active_HXT3 * Rgt1_active) / (1 + θ_Mig1_HXT3 * Mig1) / (1 + θ_Mig2_HXT3 * Mig2),
         D(mHXT4) ~ -k_d_mHXT4 * mHXT4 + V_mHXT4 / (1 + θ_Rgt1_active_HXT4 * Rgt1_active) / (1 + θ_Mig1_HXT4 * Mig1) / (1 + θ_Mig2_HXT4 * Mig2), D(mMIG1) ~ -k_d_mMIG1 * mMIG1 + V_mMIG1 / (1 + θ_Mig1_MIG1 * Mig1) / (1 + θ_Mig2_MIG1 * Mig2),
@@ -253,7 +252,7 @@ end
 with points at t_stop_points"
 function model_solver(_problem_object::ODEProblem, θin::AbstractVector, c0::AbstractVector, t_stop::Number)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-    sol = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8;verbose=false)
+    sol = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8; verbose=false)
     return sol
 end
 
@@ -296,7 +295,7 @@ function ss_conc_calc(_problem_object::ODEProblem, θin::AbstractVector, c0::Abs
     t_maximum = 10000 #Maximala tid att nå maximum
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)
     cb = DiscreteCallback(terminate_condition, terminate_affect!)
-    sol = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8;verbose=false)
+    sol = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8; verbose=false)
     if sol.retcode ≠ :Success && sol.retcode ≠ :Terminated
         @warn "Failed solving ss ODE, reason: $(sol.retcode)" maxlog = 10
         return Inf
@@ -355,7 +354,8 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
                 else
                     c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
                 end
-                for index_hxt = 1:4 #Kika
+                for index_hxt = experiment.hxt_types #Kika
+
                     error += sum((c_t[5+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
                     #error = 0
                 end
@@ -387,7 +387,8 @@ end
 problem_object, system = model_initialize()
 
 #bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
-bounds = [(1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3)]
+#bounds = [(1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3)]
+bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
 log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
 f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för glukos
 
@@ -395,9 +396,15 @@ timing_tests(problem_object, experimental_data, f)
 
 
 # run the parameter estimation
-x_min, f_min = p_est(f, log_bounds, 20, false)
-
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 20, false)
+println(time)
 
 
 #Our best optimization this far
 [32.203309044650034, 742.783082678127, 10.000000000000002, 117.6717005960833, 999.9999999999998, 999.9999999999998, 119.24314784622099, 962.2327978439788, 820.4521588915686, 365.1251892441377, 872.2813535042653]
+[14.704795240149895, 94.25077571190297, 10.000000000000002, 10.000000000000002, 999.9999999999998, 999.9999999999998, 224.12936114356995, 11.023045896326574, 284.4448443306343, 764.9695773867006, 25.043653410184636]
+
+4292.68 [58.10855970223093, 29.342056146663328, 10.863804077620278, 1.0454896333913732, 189.2320947570951, 9708.181621964435, 436.77064289718135, 0.3370918928797154, 519.9913806157449, 660.3588048299554, 48.89024734603426]
+4287.7 [3.0355311278715624, 35.042138072291394, 1.7174876431956678, 2.928602033408231, 226.10878703418416, 20711.665140420686, 12.452901701497037, 9.381285393565758, 737.2081556411539, 301.00964358072935, 322.95725924545314]
+
+bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e2, 1e4), (1e2, 1e4), (1e1, 1e3)]
