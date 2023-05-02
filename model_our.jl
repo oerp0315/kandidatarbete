@@ -254,7 +254,7 @@ end
 with points at t_stop_points"
 function model_solver(_problem_object::ODEProblem, θin::AbstractVector, c0::AbstractVector, t_stop::Number)
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_stop), p=θin)
-    sol = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8;verbose=false)
+    sol = solve(problem_object, Rodas5P(), abstol=1e-8, reltol=1e-8; verbose=false)
     return sol
 end
 
@@ -297,7 +297,7 @@ function ss_conc_calc(_problem_object::ODEProblem, θin::AbstractVector, c0::Abs
     t_maximum = 10000 #Maximala tid att nå maximum
     problem_object = remake(_problem_object, u0=convert.(eltype(θin), c0), tspan=(0.0, t_maximum), p=θin)
     cb = DiscreteCallback(terminate_condition, terminate_affect!)
-    sol = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8;verbose=false)
+    sol = solve(problem_object, callback=cb, Rodas5P(), abstol=1e-8, reltol=1e-8; verbose=false)
     if sol.retcode ≠ :Success && sol.retcode ≠ :Terminated
         @warn "Failed solving ss ODE, reason: $(sol.retcode)" maxlog = 10
         return Inf
