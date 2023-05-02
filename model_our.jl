@@ -22,7 +22,7 @@ struct experiment_results
 end
 
 index_general = [1, 1, 2, 2, 3, 3, 4, 4]
-index_mutant = [4, 4]
+index_mutant = [2, 2]
 
 Data01_glucose = [0.74 0.1 0.06 0.05 0.76 0.13 23.02 26.98
     1.83 0.52 0.1 0.06 0.85 0.33 29.55 36.75
@@ -60,11 +60,12 @@ experiment2 = experiment_results(6.685e9, index_general, Data02_glucose, timeval
 #experiment1 = experiment_results(1, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
 #experiment2 = experiment_results(1, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
-experiment3 = experiment_results(3.346e8, index_mutant,Data01_mutant, timevalues_mutant)
-experiment4 = experiment_results(0.2, index_mutant, Data02_mutant, timevalues_mutant)
 
-#experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
-experimental_data = [experiment1, experiment2,experiment3,experiment4]
+#experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
+#experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
+
+experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
+#experimental_data = [experiment1, experiment2,experiment3,experiment4]
 
 "Constructs the model
 return a problem_object"
@@ -185,7 +186,7 @@ function model_initialize()
         D(mSNF3) ~ -k_d_mSNF3 * mSNF3 + V_mSNF3 / (1 + θ_Mig1_Snf3 * Mig1) / (1 + θ_Mig2_Snf3 * Mig2),
         D(mSTD1) ~ -k_d_mSTD1 * mSTD1 + V_mSTD1 / (1 + θ_Rgt1_active_Std1 * Rgt1_active),
         D(mMTH1) ~ -k_d_mMTH1 * mMTH1 + V_mMTH1 / (1 + θ_Rgt1_active_MTH1 * Rgt1_active) / (1 + θ_Mig1_MTH1 * Mig1) / (1 + θ_Mig2_MTH1 * Mig2),
-        D(mRGT1) ~ -k_d_mRGT1 * mRGT1 + V_mRGT1, 
+        D(mRGT1) ~ -k_d_mRGT1 * mRGT1 + V_mRGT1,
         D(mHXT1) ~ -k_d_mHXT1 * mHXT1 + V_mHXT1 * (T_mHXT1 + ((1 - T_mHXT1) * θ_activation * Rgt1) / (1 + θ_activation * Rgt1)) / (1 + θ_Rgt1_active_HXT1 * Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
         D(mHXT2) ~ -k_d_mHXT2 * mHXT2 + V_mHXT2 / (1 + θ_Rgt1_active_HXT2 * Rgt1_active) / (1 + θ_Mig1_HXT2 * Mig1) / (1 + θ_Mig2_HXT2 * Mig2),
         D(mHXT3) ~ -k_d_mHXT3 * mHXT3 + V_mHXT3 / (1 + θ_Rgt1_active_HXT3 * Rgt1_active) / (1 + θ_Mig1_HXT3 * Mig1) / (1 + θ_Mig2_HXT3 * Mig2),
@@ -404,7 +405,6 @@ println(time)
 [32.203309044650034, 742.783082678127, 10.000000000000002, 117.6717005960833, 999.9999999999998, 999.9999999999998, 119.24314784622099, 962.2327978439788, 820.4521588915686, 365.1251892441377, 872.2813535042653]
 [14.704795240149895, 94.25077571190297, 10.000000000000002, 10.000000000000002, 999.9999999999998, 999.9999999999998, 224.12936114356995, 11.023045896326574, 284.4448443306343, 764.9695773867006, 25.043653410184636]
 
-4292.68 [58.10855970223093, 29.342056146663328, 10.863804077620278, 1.0454896333913732, 189.2320947570951, 9708.181621964435, 436.77064289718135, 0.3370918928797154, 519.9913806157449, 660.3588048299554, 48.89024734603426]
-4287.7 [3.0355311278715624, 35.042138072291394, 1.7174876431956678, 2.928602033408231, 226.10878703418416, 20711.665140420686, 12.452901701497037, 9.381285393565758, 737.2081556411539, 301.00964358072935, 322.95725924545314]
+#4292.68 [58.10855970223093, 29.342056146663328, 10.863804077620278, 1.0454896333913732, 189.2320947570951, 9708.181621964435, 436.77064289718135, 0.3370918928797154, 519.9913806157449, 660.3588048299554, 48.89024734603426]
 
-bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e2, 1e4), (1e2, 1e4), (1e1, 1e3)]
+#bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
