@@ -272,59 +272,61 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             truncate(timelog_file, 0)
             close(timelog_file)
         end
+    end
 
-        need_new_samples = true
+    need_new_samples = true
 
-        # previous bounds
-        if isfile("p_est_results/bounds.csv")
-            read_previous_bounds = CSV.File("p_est_results/bounds.csv") |> DataFrame
-            previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
+    # previous bounds
+    if isfile("p_est_results/bounds.csv")
+        read_previous_bounds = CSV.File("p_est_results/bounds.csv") |> DataFrame
+        previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
 
-            if log_bounds == previous_bounds && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
-                x_samples_log = readdlm("p_est_results/latin_hypercube.csv", Float64)
-                need_new_samples = false
+        if log_bounds == previous_bounds && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
+            x_samples_log = readdlm("p_est_results/latin_hypercube.csv", Float64)
+            need_new_samples = false
+        end
+    end
+
+    if need_new_samples
+        # Failed samples
+        fail_samples = []
+
+        # Successful samples
+        success_samples = []
+
+        # function value list
+        function_values = []
+
+        # Generate Latin hypercube samples in the search space
+        x_samples_log = latin_hypercube(n_samples, log_bounds)
+
+        while length(success_samples) < n_samples
+            for sample in eachrow(x_samples_log)
+                if f(sample) == Inf && length(success_samples) < n_samples
+                    push!(fail_samples, sample)
+                elseif length(success_samples) < n_samples
+                    push!(success_samples, sample)
+                    push!(function_values, f(sample))
+                end
+            end
+            if n_samples - length(success_samples) < length(bounds)
+                x_samples_log = latin_hypercube(20, log_bounds)
+            else
+                x_samples_log = latin_hypercube(n_samples - length(success_samples), log_bounds)
             end
         end
 
-        if need_new_samples
-            # Failed samples
-            fail_samples = []
+        x_samples_log = success_samples
 
-            # Successful samples
-            success_samples = []
-
-            # function value list
-            function_values = []
-
-            # Generate Latin hypercube samples in the search space
-            x_samples_log = latin_hypercube(n_samples, log_bounds)
-
-            while length(success_samples) < n_samples
-                for sample in eachrow(x_samples_log)
-                    if f(sample) == Inf && length(success_samples) < n_samples
-                        push!(fail_samples, sample)
-                    elseif length(success_samples) < n_samples
-                        push!(success_samples, sample)
-                        push!(function_values, f(sample))
-                    end
-                end
-                if n_samples - length(success_samples) < length(bounds)
-                    x_samples_log = latin_hypercube(20, log_bounds)
-                else
-                    x_samples_log = latin_hypercube(n_samples - length(success_samples), log_bounds)
-                end
-            end
-
-            x_samples_log = success_samples
-
-            # save generated samples in file
-            open("p_est_results/latin_hypercube.csv", "w") do io
-                writedlm(io, x_samples_log)
-            end
-
-            # log used bounds
-            CSV.write("p_est_results/bounds.csv", DataFrame(log_bounds))
+        #if pl_mode == false
+        # save generated samples in file
+        open("p_est_results/latin_hypercube.csv", "w") do io
+            writedlm(io, x_samples_log)
         end
+        #end
+
+        # log used bounds
+        CSV.write("p_est_results/bounds.csv", DataFrame(log_bounds))
     end
 
     # if the gradient is not good enough the program will terminate
