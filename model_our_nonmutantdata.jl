@@ -372,12 +372,12 @@ end
 function timing_tests(problem_object, experimental_data, f)
     #Solve one time first to fix compliation time
     model_solver(problem_object, ones(12), zeros(24), 100)
-    cost_function(problem_object, zeros(11), experimental_data, 3)
+    cost_function(problem_object, zeros(11), experimental_data)
     ForwardDiff.gradient(f, ones(11))
     ForwardDiff.hessian(f, ones(11))
 
     time_model_solver = @elapsed model_solver(problem_object, ones(12), zeros(24), 100)
-    time_cost_function = @elapsed cost_function(problem_object, zeros(11), experimental_data, 3)
+    time_cost_function = @elapsed cost_function(problem_object, zeros(11), experimental_data)
     time_gradient = @elapsed ForwardDiff.gradient(f, ones(11))
     time_hessian = @elapsed ForwardDiff.hessian(f, ones(11))
     data = DataFrame(Function=["model_solver", "cost_function", "gradient", "hessian"], time=[time_model_solver, time_cost_function, time_gradient, time_hessian])
@@ -395,7 +395,7 @@ f(x) = cost_function(problem_object, x, experimental_data)
 timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
-time = @elapsed x_min, f_min = p_est(f, log_bounds, 15, false)
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 1000, false)
 println(time)
 
 # Define the initial parameter values
