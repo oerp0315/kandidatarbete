@@ -63,7 +63,7 @@ experiment2 = experiment_results(6.685e8, index_general, Data02_glucose, timeval
 experiment3 = experiment_results(3.346e8, index_mutant,Data01_mutant, timevalues_mutant)
 experiment4 = experiment_results(3.346e8, index_mutant, Data02_mutant, timevalues_mutant)
 
-experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
+#experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
 experimental_data = [experiment1, experiment2, experiment3,experiment4]
 
 "Constructs the model
@@ -412,17 +412,20 @@ end
 
 problem_object, system = model_initialize()
 
-#bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
+bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
 #bounds = [(1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3)]
-bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
+#bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
+#bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
+
 log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
 f(x) = cost_function(problem_object, x, experimental_data, 6, 3, 11, 14) # 3 är index för glukos
+
 
 timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
-#time = @elapsed x_min, f_min = p_est(f, log_bounds, 100, false)
-#println(time)
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 20, false)
+println("The optimization took: $time")
 
 
 #Our best optimization this far
