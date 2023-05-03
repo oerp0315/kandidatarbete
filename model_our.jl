@@ -55,21 +55,21 @@ timevalues_general = [0.0, 10.0, 20.0, 30.0, 40.0, 60.0, 120.0]
 timevalues_mutant = [0.0, 10.0, 27.0, 35.0, 60.0, 120.0]
 
 experiment1 = experiment_results(3.346e8, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
-experiment2 = experiment_results(6.685e9, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
+experiment2 = experiment_results(6.685e8, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
 #experiment1 = experiment_results(1, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
 #experiment2 = experiment_results(1, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
-#experiment3 = experiment_results(0.1, index_mutant,Data01_mutant, timevalues_mutant)
-#experiment3 = experiment_results(0.1, index_mutant, Data02_mutant, timevalues_mutant)
+experiment3 = experiment_results(3.346e8, index_mutant,Data01_mutant, timevalues_mutant)
+experiment4 = experiment_results(3.346e8, index_mutant, Data02_mutant, timevalues_mutant)
 
 experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
-#experimental_data = [experiment1, experiment2,experiment3,experiment4]
+experimental_data = [experiment1, experiment2, experiment3,experiment4]
 
 "Constructs the model
 return a problem_object"
 function model_initialize()
-    @parameters t Extracellular_glucose k_a_Snf3 k_i_Snf3g k_i_Std1 K_Std1_Rgt1 k_i_Mth1 K_Mth1_Rgt1 k_p_ATP k_i_Snf1 k_i_Mig1 T_mHXT1 θ_activation
+    @parameters t Extracellular_glucose k_a_Snf3 k_i_Snf3g k_i_Std1 K_Std1_Rgt1 k_i_Mth1 K_Mth1_Rgt1 k_p_ATP k_i_Snf1 k_i_Mig1 T_mHXT1 θ_activation controller_Rgt1 controller_Mig2
     @variables Snf3(t) Snf3g(t) Std1(t) Mth1(t) Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t) mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
     D = Differential(t)
 
@@ -185,12 +185,12 @@ function model_initialize()
         D(mSNF3) ~ -k_d_mSNF3 * mSNF3 + V_mSNF3 / (1 + θ_Mig1_Snf3 * Mig1) / (1 + θ_Mig2_Snf3 * Mig2),
         D(mSTD1) ~ -k_d_mSTD1 * mSTD1 + V_mSTD1 / (1 + θ_Rgt1_active_Std1 * Rgt1_active),
         D(mMTH1) ~ -k_d_mMTH1 * mMTH1 + V_mMTH1 / (1 + θ_Rgt1_active_MTH1 * Rgt1_active) / (1 + θ_Mig1_MTH1 * Mig1) / (1 + θ_Mig2_MTH1 * Mig2),
-        D(mRGT1) ~ -k_d_mRGT1 * mRGT1 + V_mRGT1,
+        D(mRGT1) ~ controller_Rgt1*(-k_d_mRGT1 * mRGT1 + V_mRGT1),
         D(mHXT1) ~ -k_d_mHXT1 * mHXT1 + V_mHXT1 * (T_mHXT1 + ((1 - T_mHXT1) * θ_activation * Rgt1) / (1 + θ_activation * Rgt1)) / (1 + θ_Rgt1_active_HXT1 * Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
         D(mHXT2) ~ -k_d_mHXT2 * mHXT2 + V_mHXT2 / (1 + θ_Rgt1_active_HXT2 * Rgt1_active) / (1 + θ_Mig1_HXT2 * Mig1) / (1 + θ_Mig2_HXT2 * Mig2),
         D(mHXT3) ~ -k_d_mHXT3 * mHXT3 + V_mHXT3 / (1 + θ_Rgt1_active_HXT3 * Rgt1_active) / (1 + θ_Mig1_HXT3 * Mig1) / (1 + θ_Mig2_HXT3 * Mig2),
         D(mHXT4) ~ -k_d_mHXT4 * mHXT4 + V_mHXT4 / (1 + θ_Rgt1_active_HXT4 * Rgt1_active) / (1 + θ_Mig1_HXT4 * Mig1) / (1 + θ_Mig2_HXT4 * Mig2), D(mMIG1) ~ -k_d_mMIG1 * mMIG1 + V_mMIG1 / (1 + θ_Mig1_MIG1 * Mig1) / (1 + θ_Mig2_MIG1 * Mig2),
-        D(mMIG2) ~ -k_d_mMIG2 * mMIG2 + V_mMIG2 / (1 + θ_Rgt1_active_MIG2 * Rgt1_active) / (1 + θ_Mig1_MIG2 * Mig1) / (1 + θ_Mig2_MIG2 * Mig2),
+        D(mMIG2) ~ controller_Mig2*(-k_d_mMIG2 * mMIG2 + V_mMIG2 / (1 + θ_Rgt1_active_MIG2 * Rgt1_active) / (1 + θ_Mig1_MIG2 * Mig1) / (1 + θ_Mig2_MIG2 * Mig2)),
         D(mSNF1) ~ -k_d_mSNF1 * mSNF1 + V_mSNF1]
 
     @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
@@ -199,7 +199,7 @@ function model_initialize()
 
     # Intialvärden som kommer skrivas över
     c0 = zeros(24)
-    θin = zeros(12)
+    θin = zeros(14)
 
     u0 = [
         Snf3 => c0[1],
@@ -238,10 +238,12 @@ function model_initialize()
         k_i_Mig1 => θin[9],
         T_mHXT1 => θin[10],
         θ_activation => θin[11],
-        Extracellular_glucose => θin[12]]
+        Extracellular_glucose => θin[12],
+        controller_Rgt1 => θin[13],
+        controller_Mig2 => θin[14]]
 
     CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(system)))
-    CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:12), C=parameters(system)))
+    CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:14), C=parameters(system)))
 
     tspan = (0.0, 10) #Tiden vi kör modellen under
     problem_object = ODEProblem(system, u0, tspan, p)  #Definierar vad som ska beräknas
@@ -326,18 +328,45 @@ function check_extra_error(e)
 end
 
 "Calculate difference between experiments and model"
-function cost_function(problem_object, logθ, experimental_data::AbstractVector, index_glucose)
+function cost_function(problem_object, logθ, experimental_data::AbstractVector, index_first_Hxt, index_glucose, index_controller_Rgt1, index_controller_Mig2)
     θ = exp.(logθ)
-    insert!(θ, index_glucose, 0) #Problem med dualtal?
+    θ_type = eltype(θ)
 
-    c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
-    if c_eq == Inf
-        return Inf
-    end
+    zero_typefix = convert.(θ_type, 0)
+    one_typefix = convert.(θ_type, 1)
+
+    insert!(θ, index_glucose, zero_typefix)
+    insert!(θ, index_controller_Rgt1, one_typefix)
+    insert!(θ, index_controller_Mig2, one_typefix)
+    
     error = 0
-    for experiment in experimental_data
+    c_eq_store = []
+    for (i, experiment) in enumerate(experimental_data)
         try
-            θ[index_glucose] = convert.(eltype(θ), experiment.glucose_conc)
+            c_eq = [1]
+            if i == 2
+                c_eq = c_eq_store
+            else 
+                if i == 3
+                    θ[index_controller_Rgt1] = zero_typefix
+                    θ[index_controller_Mig2] = one_typefix
+                else i == 4
+                    θ[index_controller_Rgt1] = one_typefix
+                    θ[index_controller_Mig2] = zero_typefix
+                end
+
+                global c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
+                if c_eq == Inf
+                    return Inf
+                end
+
+                if i == 1
+                    c_eq_store = c_eq
+                end
+            end
+
+
+            θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
             sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
             if sol.retcode ≠ :Success
                 if sol.retcode ≠ :DtLessThanMin
@@ -346,7 +375,6 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
                 return Inf
             end
             for (index_time_data, t) in enumerate(experiment.t)
-                #c_t = sol(t)
                 index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
 
                 if index_time_model == 1
@@ -355,8 +383,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
                     c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
                 end
                 for index_hxt = experiment.hxt_types #Kika
-
-                    error += sum((c_t[5+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
+                    error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
                     #error = 0
                 end
             end
@@ -364,20 +391,19 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
             check_extra_error(e)
             return Inf
         end
-
     end
     return error
 end
 
 function timing_tests(problem_object, experimental_data, f)
     #Solve one time first to fix compliation time
-    model_solver(problem_object, ones(12), zeros(24), 100)
-    cost_function(problem_object, zeros(11), experimental_data, 3)
+    model_solver(problem_object, ones(12), zeros(26), 100)
+    cost_function(problem_object, zeros(11), experimental_data,6, 3, 11, 14)
     ForwardDiff.gradient(f, ones(11))
     ForwardDiff.hessian(f, ones(11))
 
-    time_model_solver = @elapsed model_solver(problem_object, ones(12), zeros(24), 100)
-    time_cost_function = @elapsed cost_function(problem_object, zeros(11), experimental_data, 3)
+    time_model_solver = @elapsed model_solver(problem_object, ones(12), zeros(26), 100)
+    time_cost_function = @elapsed cost_function(problem_object, zeros(11), experimental_data, 6,3, 11, 14)
     time_gradient = @elapsed ForwardDiff.gradient(f, ones(11))
     time_hessian = @elapsed ForwardDiff.hessian(f, ones(11))
     data = DataFrame(Function=["model_solver", "cost_function", "gradient", "hessian"], time=[time_model_solver, time_cost_function, time_gradient, time_hessian])
@@ -390,14 +416,13 @@ problem_object, system = model_initialize()
 #bounds = [(1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3)]
 bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
 log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
-f(x) = cost_function(problem_object, x, experimental_data, 3) # 3 är index för glukos
+f(x) = cost_function(problem_object, x, experimental_data, 6, 3, 11, 14) # 3 är index för glukos
 
 timing_tests(problem_object, experimental_data, f)
 
-
 # run the parameter estimation
-time = @elapsed x_min, f_min = p_est(f, log_bounds, 100, false)
-println(time)
+#time = @elapsed x_min, f_min = p_est(f, log_bounds, 100, false)
+#println(time)
 
 
 #Our best optimization this far
