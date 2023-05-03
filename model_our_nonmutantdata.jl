@@ -395,7 +395,7 @@ f(x) = cost_function(problem_object, x, experimental_data)
 timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
-time = @elapsed x_min, f_min = p_est(f, log_bounds, 1000, false)
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 15, false)
 println(time)
 
 # Define the initial parameter values
@@ -408,4 +408,4 @@ threshold = 3.84
 # save threshold
 CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
 
-run_profile_likelihood(params, bounds, num_points, threshold)
+run_profile_likelihood(params, log_bounds, num_points, threshold)

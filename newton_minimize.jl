@@ -375,7 +375,7 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
             # log time for each sample point
             CSV.write("p_est_results/time_log.csv", DataFrame(time=res.time_log); append=true)
             iter_res[sample_num] = min_iter
-            x_sample_list[sample_num] = x
+            x_sample_list[sample_num] = exp.(x)
             x_iter_min_list[sample_num] = x_current_min
             f_min_list[sample_num] = f_current_min
         end

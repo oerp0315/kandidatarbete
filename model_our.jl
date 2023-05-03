@@ -426,7 +426,7 @@ f(x) = cost_function(problem_object, x, experimental_data) # 3 är index för gl
 timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
-time = @elapsed x_min, f_min = p_est(f, log_bounds, 1000, false)
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 15, false)
 println("The optimization took: $time")
 
 
@@ -440,7 +440,7 @@ threshold = 3.84
 # save threshold
 CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
 
-run_profile_likelihood(params, bounds, num_points, threshold)
+run_profile_likelihood(params, log_bounds, num_points, threshold)
 
 #Our best optimization this far
 [32.203309044650034, 742.783082678127, 10.000000000000002, 117.6717005960833, 999.9999999999998, 999.9999999999998, 119.24314784622099, 962.2327978439788, 820.4521588915686, 365.1251892441377, 872.2813535042653]
