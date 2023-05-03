@@ -137,7 +137,7 @@ function profile_likelihood(params, param_index, log_bounds, num_points, thresho
         cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, log_params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest
-        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 10, true; x_samples_log=new_log_x_samples)
+        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 100, true; x_samples_log=new_log_x_samples)
 
         # update logging lists with results
         if sign == -1
