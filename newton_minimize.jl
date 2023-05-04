@@ -79,23 +79,62 @@ function latin_hypercube(n_samples, log_bounds; seed=123)
     random_matrix = rand(n_samples, n_vars)
 
     # create a matrix where samples will be inserted to
-    samples = zeros(n_samples, n_vars)
+    x_samples_log = zeros(n_samples, n_vars)
 
     # generate samples with random position within varible intervals
     for i in 1:n_samples
         for j in 1:n_vars
-            samples[i, j] = (square[i, j] - 1) / ((n_samples - 1) * (n_samples / (n_samples - 1))) + random_matrix[i, j] / n_samples
+            x_samples_log[i, j] = (square[i, j] - 1) / ((n_samples - 1) * (n_samples / (n_samples - 1))) + random_matrix[i, j] / n_samples
         end
     end
 
     # scale samples to bounds
     for i in 1:n_samples
         for j in 1:n_vars
-            samples[i, j] = (log_bounds[j][2] - log_bounds[j][1]) * samples[i, j] + log_bounds[j][1]
+            x_samples_log[i, j] = (log_bounds[j][2] - log_bounds[j][1]) * x_samples_log[i, j] + log_bounds[j][1]
         end
     end
 
-    return samples
+    # Failed samples
+    fail_samples = []
+
+    # Successful samples
+    success_samples = []
+
+    # function value list
+    function_values = []
+
+    while length(success_samples) < n_samples
+        for sample in eachrow(x_samples_log)
+            if f(sample) == Inf && length(success_samples) < n_samples
+                push!(fail_samples, sample)
+            elseif length(success_samples) < n_samples
+                push!(success_samples, sample)
+                push!(function_values, f(sample))
+            end
+        end
+        if n_samples - length(success_samples) < length(bounds)
+            x_samples_log = latin_hypercube(20, log_bounds)
+        else
+            x_samples_log = latin_hypercube(n_samples - length(success_samples), log_bounds)
+        end
+    end
+
+    x_samples_log = success_samples
+
+    if pl_mode == false
+        # save generated samples in file
+        open("p_est_results/latin_hypercube.csv", "w") do io
+            writedlm(io, x_samples_log)
+        end
+    else
+        # save generated samples in file
+        open("profilelikelihood_results/pl_latin_hypercube", "w") do io
+            writedlm(io, x_samples_log)
+        end
+    end
+
+    return x_samples_log
 end
 
 "Remove elements in a vector equal to zeros"
@@ -238,7 +277,7 @@ end
 
 "Runs an optimization on function f in the region of bounds with n_samples number of samples.
 If running p_est through profile likelihood pl_mode should be true"
-function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
+function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0, run_latin_hypercube=true)
     if pl_mode == false
         # create a directory for parameter estimation
         if isdir("p_est_results") == false
@@ -287,43 +326,9 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0)
         end
     end
 
-    if need_new_samples
-        # Failed samples
-        fail_samples = []
-
-        # Successful samples
-        success_samples = []
-
-        # function value list
-        function_values = []
-
+    if need_new_samples && run_latin_hypercube
         # Generate Latin hypercube samples in the search space
         x_samples_log = latin_hypercube(n_samples, log_bounds)
-
-        while length(success_samples) < n_samples
-            for sample in eachrow(x_samples_log)
-                if f(sample) == Inf && length(success_samples) < n_samples
-                    push!(fail_samples, sample)
-                elseif length(success_samples) < n_samples
-                    push!(success_samples, sample)
-                    push!(function_values, f(sample))
-                end
-            end
-            if n_samples - length(success_samples) < length(bounds)
-                x_samples_log = latin_hypercube(20, log_bounds)
-            else
-                x_samples_log = latin_hypercube(n_samples - length(success_samples), log_bounds)
-            end
-        end
-
-        x_samples_log = success_samples
-
-        #if pl_mode == false
-        # save generated samples in file
-        open("p_est_results/latin_hypercube.csv", "w") do io
-            writedlm(io, x_samples_log)
-        end
-        #end
 
         # log used bounds
         CSV.write("p_est_results/bounds.csv", DataFrame(log_bounds))

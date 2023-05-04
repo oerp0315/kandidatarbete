@@ -77,7 +77,7 @@ struct log_pl_results
 end
 
 "Perform profile likelihood analysis for one parameter"
-function profile_likelihood(params, param_index, log_bounds, num_points, threshold)
+function profile_likelihood(params, param_index, log_bounds, num_points, threshold, run_latin_hypercube)
     # list of indexes to be optimized
     index_list = [i for i in 1:length(log_bounds) if i != param_index]
 
@@ -89,7 +89,7 @@ function profile_likelihood(params, param_index, log_bounds, num_points, thresho
     current_bounds = deleteat!(bounds_, param_index)
 
     # new start values
-    log_x_samples = readdlm("p_est_results/latin_hypercube.csv", Float64)
+    log_x_samples = readdlm("profilelikelihood_results/pl_latin_hypercube", Float64)
 
     # remove the bound at the index of the parameter that is profiled
     new_log_x_samples = hcat(log_x_samples[:, 1:param_index-1], log_x_samples[:, param_index+1:end])
@@ -137,7 +137,8 @@ function profile_likelihood(params, param_index, log_bounds, num_points, thresho
         cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, log_params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest
-        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 100, true; x_samples_log=new_log_x_samples)
+        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 100, true; x_samples_log=new_log_x_samples, run_latin_hypercube=run_latin_hypercube)
+        run_latin_hypercube = false
 
         # update logging lists with results
         if sign == -1
@@ -164,7 +165,7 @@ function profile_likelihood(params, param_index, log_bounds, num_points, thresho
         remove_zeros(x_list),
         remove_zeros(costfunc_value_list))
 
-    return pl_res
+    return pl_res, run_latin_hypercube
 end
 
 "Run profile likelihood with the optimized parameters params, specifying how many steps can 
@@ -182,10 +183,12 @@ function run_profile_likelihood(params, log_bounds, num_points, threshold)
         close(pl_file)
     end
 
+    run_latin_hypercube = true
+
     # iterate over all parameters
     for i in 1:length(log_bounds)
         # run profile likelihood for the current parameter
-        pl_res = profile_likelihood(params, i, log_bounds, num_points, threshold)
+        pl_res, run_latin_hypercube = profile_likelihood(params, i, log_bounds, num_points, threshold, run_latin_hypercube)
 
         # create a DataFrame for the data to be logged
         data = DataFrame(Fixed_parameter_index=pl_res.fix_param_index,
