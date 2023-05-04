@@ -413,7 +413,4 @@ params = x_min
 num_points = 100
 threshold = 3.84
 
-# save threshold
-CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
-
-run_profile_likelihood(params, log_bounds, 12, num_points, threshold)
+run_profile_likelihood(params, log_bounds, 100, num_points, threshold)

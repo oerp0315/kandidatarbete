@@ -77,7 +77,7 @@ struct log_pl_results
 end
 
 "Perform profile likelihood analysis for one parameter"
-function profile_likelihood(params, param_index, log_bounds, num_points, threshold, run_latin_hypercube)
+function profile_likelihood(params, param_index, log_bounds, num_points, threshold)
     # list of indexes to be optimized
     index_list = [i for i in 1:length(log_bounds) if i != param_index]
 
@@ -164,7 +164,7 @@ function profile_likelihood(params, param_index, log_bounds, num_points, thresho
         remove_zeros(x_list),
         remove_zeros(costfunc_value_list))
 
-    return pl_res, run_latin_hypercube
+    return pl_res
 end
 
 "Run profile likelihood with the optimized parameters params, specifying how many steps can 
@@ -175,6 +175,9 @@ function run_profile_likelihood(params, log_bounds, n_samples_pl, num_points, th
         mkdir("profilelikelihood_results")
     end
 
+    # save threshold
+    CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
+
     # Check if the profile_likelihood.csv exists and truncate it if it does
     if isfile("profilelikelihood_results/profile_likelihood.csv")
         pl_file = open("profilelikelihood_results/profile_likelihood.csv", "w")
@@ -183,6 +186,7 @@ function run_profile_likelihood(params, log_bounds, n_samples_pl, num_points, th
     end
 
     x_samples_log = latin_hypercube(n_samples_pl, log_bounds)
+    x_samples_log = sample_correction(x_samples_log, n_samples_pl)
 
     # save generated samples in file
     open("profilelikelihood_results/pl_latin_hypercube", "w") do io
@@ -192,7 +196,7 @@ function run_profile_likelihood(params, log_bounds, n_samples_pl, num_points, th
     # iterate over all parameters
     for i in 1:length(log_bounds)
         # run profile likelihood for the current parameter
-        pl_res, run_latin_hypercube = profile_likelihood(params, i, log_bounds, num_points, threshold, run_latin_hypercube)
+        pl_res = profile_likelihood(params, i, log_bounds, num_points, threshold)
 
         # create a DataFrame for the data to be logged
         data = DataFrame(Fixed_parameter_index=pl_res.fix_param_index,
