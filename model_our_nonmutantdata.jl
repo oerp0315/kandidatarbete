@@ -384,18 +384,26 @@ function timing_tests(problem_object, experimental_data, f)
     CSV.write("ss_timer.csv", data)
 end
 
+function bounds_generator(θ_estimation)
+    bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
+    newbounds = bounds
+    for i = 1:11
+        newbounds[i] = θ_estimation[i] .* bounds[i]
+    end
+    return newbounds
+end
+
 problem_object, system = model_initialize()
 
-#bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
-#bounds = [(1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3), (1e1, 1e3)]
-bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e5), (1e-3, 1e5), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e5), (1e-3, 1e3)]
+last_optim = [70.46625795659484, 0.3498512731855041, 5.738590558662932e-5, 0.046716939870145247, 1.9069018102692126e6, 0.00011573738478331237, 0.0021174158490855697, 424.86287137133365, 948.3406330032589, 1429.6672832468535, 0.0007285444682527054]
+bounds = bounds_generator(last_optim)
 log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
 f(x) = cost_function(problem_object, x, experimental_data)
 
 timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
-time = @elapsed x_min, f_min = p_est(f, log_bounds, 15, false)
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 1000, false)
 println(time)
 
 # Define the initial parameter values
