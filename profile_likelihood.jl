@@ -137,8 +137,7 @@ function profile_likelihood(params, param_index, log_bounds, num_points, thresho
         cost_function_profilelikelihood = (x) -> intermediate_cost_function(x, index_list, log_params_current)
 
         # Find the maximum likelihood estimate for the parameter of interest
-        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 100, true; x_samples_log=new_log_x_samples, run_latin_hypercube=run_latin_hypercube)
-        run_latin_hypercube = false
+        x_min, f_min = p_est(cost_function_profilelikelihood, current_bounds, 1000, true; x_samples_log=new_log_x_samples)
 
         # update logging lists with results
         if sign == -1
@@ -170,7 +169,7 @@ end
 
 "Run profile likelihood with the optimized parameters params, specifying how many steps can 
 maximally be made in each direction"
-function run_profile_likelihood(params, log_bounds, num_points, threshold)
+function run_profile_likelihood(params, log_bounds, n_samples_pl, num_points, threshold)
     # create a directory for profile likelihood
     if isdir("profilelikelihood_results") == false
         mkdir("profilelikelihood_results")
@@ -183,7 +182,12 @@ function run_profile_likelihood(params, log_bounds, num_points, threshold)
         close(pl_file)
     end
 
-    run_latin_hypercube = true
+    x_samples_log = latin_hypercube(n_samples_pl, log_bounds)
+
+    # save generated samples in file
+    open("profilelikelihood_results/pl_latin_hypercube", "w") do io
+        writedlm(io, x_samples_log)
+    end
 
     # iterate over all parameters
     for i in 1:length(log_bounds)

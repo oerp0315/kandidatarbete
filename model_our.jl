@@ -415,9 +415,9 @@ end
 
 function bounds_generator(θ_estimation)
     bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
-    newbounds = bounds;
+    newbounds = bounds
     for i = 1:11
-        newbounds[i] =θ_estimation[i].*bounds[i]
+        newbounds[i] = θ_estimation[i] .* bounds[i]
     end
     return newbounds
 end
@@ -452,7 +452,7 @@ threshold = 3.84
 # save threshold
 CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
 
-run_profile_likelihood(params, log_bounds, num_points, threshold)
+run_profile_likelihood(params, log_bounds, 13, num_points, threshold)
 
 #Our best optimization this far
 
