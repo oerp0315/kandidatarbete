@@ -80,7 +80,7 @@ experiment2 = experiment_results(6.685e8, index_general, Data02_glucose, timeval
 experiment3 = experiment_results(3.346e8, index_mutant, Data01_mutant, timevalues_mutant)
 experiment4 = experiment_results(3.346e8, index_mutant, Data02_mutant, timevalues_mutant)
 
-#experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
+experimental_data = [experiment1, experiment2] #Lägg till experiment 3&4 senare
 experimental_data = [experiment1, experiment2, experiment3, experiment4]
 
 "Constructs the model
@@ -361,7 +361,8 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
     error = 0
     c_eq_store = []
     for (i, experiment) in enumerate(experimental_data)
-        #try
+        try
+            #println(i)
             c_eq = [1]
             if i == 2
                 c_eq = c_eq_store
@@ -384,7 +385,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                     c_eq_store = c_eq
                 end
             end
-
+            #println(c_eq)
 
             θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
             sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
@@ -400,7 +401,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                 if index_time_model == 1
                     c_t = sol.u[1]
                 else
-                    c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
+                    c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model])
                 end
                 for index_hxt = experiment.hxt_types #Kika
                     if i == 3 || i ==4
@@ -410,10 +411,10 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                     end
                 end
             end
-        #catch e
-        #    check_extra_error(e)
-        #    return Inf
-        #end
+        catch e
+            check_extra_error(e)
+            return Inf
+        end
     end
     return error
 end
@@ -443,6 +444,72 @@ function bounds_generator(θ_estimation)
     return newbounds
 end
 
+function plot_kinetic(θ,experimental_data;
+    index_first_Hxt=6, index_glucose=3, index_controller_Rgt1=11, index_controller_Mig2=14)
+
+    θ_type = eltype(θ)
+
+    zero_typefix = convert.(θ_type, 0)
+    one_typefix = convert.(θ_type, 1)
+
+    insert!(θ, index_glucose, zero_typefix)
+    insert!(θ, index_controller_Rgt1, one_typefix)
+    insert!(θ, index_controller_Mig2, one_typefix)
+
+    #labels = string.(states(system))
+    #labels_matrix = reshape(labels, 1 ,length(labels))
+    #println(labels_matrix)
+    
+    c_eq_store = []
+    for (i, experiment) in enumerate(experimental_data)
+        #try
+        c_eq = [1]
+        if i == 2
+            c_eq = c_eq_store
+            else
+            if i == 3
+                θ[index_controller_Rgt1] = zero_typefix
+                θ[index_controller_Mig2] = one_typefix
+            else
+                i == 4
+                θ[index_controller_Rgt1] = one_typefix
+                θ[index_controller_Mig2] = zero_typefix
+            end
+
+            global c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
+            if c_eq == Inf
+                return Inf
+            end
+
+            if i == 1
+                c_eq_store = c_eq
+            end
+        end
+        θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
+        sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
+        if sol.retcode ≠ :Success
+            if sol.retcode ≠ :DtLessThanMin
+                @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
+            end
+            return Inf
+        end
+
+        model_conc = transpose(Matrix(sol))
+        if i == 1 || i==2
+            plot(sol.t, model_conc[:,6], labels ="mHXT1")
+            plot!(sol.t, model_conc[:,7], labels ="mHXT2")
+            plot!(sol.t, model_conc[:,8], labels ="mHXT3")
+            plot!(sol.t, model_conc[:,9], labels ="mHXT4")
+            plot!(experiment.t, experiment.c, labels = ["mHXT1" "mHXT1" "mHXT2" "mHXT2" "mHXT3" "mHXT3" "mHXT4" "mHXT4"], seriestype=:scatter)
+        else
+            plot(sol.t, model_conc[:,9], labels ="mHXT4")
+            plot!(experiment.t, experiment.c, labels = ["mHXT4" "mHXT4"], seriestype=:scatter)
+        end
+        #plot!(legend=:outerbottom, legendcolumn=5)
+        savefig("p_est_results/plot_ode_over_t$i")
+    end
+end
+
 problem_object, system = model_initialize()
 
 #bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
@@ -450,10 +517,14 @@ problem_object, system = model_initialize()
 #bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
 #bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
 
-#recent_optim = [108.85494114737465, 0.2453968003518383, 192.80816539102463, 0.1177373976181994, 999.9999999999998, 0.003289260224284602, 0.5161325800722115, 0.004065463645417084, 2.480803589634865, 2.25029572603142, 0.01449350855355677]
+recent_optim = [108.85494114737465, 0.2453968003518383, 192.80816539102463, 0.1177373976181994, 999.9999999999998, 0.003289260224284602, 0.5161325800722115, 0.004065463645417084, 2.480803589634865, 2.25029572603142, 0.01449350855355677]
 recent_optim = [134.52784182509174, 0.0015412019527783324, 106878.28272739767, 0.9815579029845447, 7365.748548490533, 0.5521351876907349, 0.23685389717084945, 0.010378054271635965, 0.0089956215692705, 0.20829207546603598, 0.00012942780246890534] #346230
-recent_optim = [589.8410434505685, 2.9227195081107026e-6, 6.858911447026659e6, 650.5301116976499, 4.949225456067041e6, 0.009275252595440124, 0.0635229015465391, 0.5669868452606002, 0.01729063896065383, 0.4292280046131037, 4.5967643105873475e-5] # 345634.0872040614
+long_optim = [589.8410434505685, 2.9227195081107026e-6, 6.858911447026659e6, 650.5301116976499, 4.949225456067041e6, 0.009275252595440124, 0.0635229015465391, 0.5669868452606002, 0.01729063896065383, 0.4292280046131037, 4.5967643105873475e-5] # 345634.0872040614
+recent_optim = [4.844947112856774, 0.0059179158386091614, 668779.8080657626, 0.0009815579029845446, 781.3331511895273, 0.0008234210611706963, 6.28495538899901, 3.1678420614201825, 0.00018890191375355153, 13.478754058675495, 0.0001405683703016666]
+long_mutant_optim = [0.18758807993730844, 0.0633456607349054, 0.018986351968486283, 0.011762564305639977, 67541.79255067433, 0.01495005059304239, 0.0011232323510279865, 105.77247960679242, 999.9999999999998, 1432.3471069668688, 0.0027407599740753453]
 #recent_optim = [2.535804086268593, 0.02505751298664367, 792.362885178122, 339.3975141078158, 2.587345801169178e6, 0.4503383818811139, 0.00047145079585042516, 0.04160307113768421, 0.00448896954949097, 0.0007856698677441535, 0.0001550913731035463]  # value: 345701.01456409506
+recent_optim = [70.46625795659484, 0.3498512731855041, 5.738590558662932e-5, 0.046716939870145247, 1.9069018102692126e6, 0.00011573738478331237, 0.0021174158490855697, 424.86287137133365, 948.3406330032589, 1429.6672832468535, 0.0007285444682527054]
+easy_model_optim = [4.844947112856774, 0.0059179158386091614, 668779.8080657626, 0.0009815579029845446, 781.3331511895273, 0.0008234210611706963, 6.28495538899901, 3.1678420614201825, 0.00018890191375355153, 13.478754058675495, 0.0001405683703016666] #  14092 
 bounds = bounds_generator(recent_optim)
 log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
 f(x) = cost_function(problem_object, x, experimental_data) # 3 är index för glukos
@@ -464,6 +535,13 @@ timing_tests(problem_object, experimental_data, f)
 time = @elapsed x_min, f_min = p_est(f, log_bounds, 20, false)
 println("The optimization took: $time")
 
+plot_kinetic(long_mutant_optim,experimental_data)
+f(long_mutant_optim)
+
+plot_kinetic(easy_model_optim,experimental_data)
+f(log.(easy_model_optim))
+
+f(ones(11))
 #=
 # Define the initial parameter values
 params = x_min
