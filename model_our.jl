@@ -8,7 +8,6 @@ using DataFrames
 using CSV
 include("newton_minimize.jl")
 include("profile_likelihood.jl")
-using Optim      # Tilfälligt för att testa optimering
 
 println("Nu kör vi!!!")
 
@@ -21,8 +20,10 @@ struct experiment_results
     t::AbstractVector
 end
 
-index_general = [1, 1, 2, 2, 3, 3, 4, 4]
-index_mutant = [2, 2]
+#index_general = [1, 1, 2, 2, 3, 3, 4, 4]
+#index_mutant = [2, 2]
+index_general = [1, 2, 3, 3, 4]
+index_mutant =[4]
 
 Data01_glucose = [0.74 0.1 0.06 0.05 0.76 0.13 23.02 26.98
     1.83 0.52 0.1 0.06 0.85 0.33 29.55 36.75
@@ -50,6 +51,22 @@ Data02_mutant = [23.83 20.11
     76.11 65.38
     85.12 77.12
     92.12 81.11]
+
+
+function new_data_maker(Data_old)
+    size_matrix = size(Data_old)
+    println(size_matrix)
+    data_new = zeros(size_matrix[1], trunc(Int,size_matrix[2]./2))
+    for i = 1:trunc(Int,size_matrix[2]./2)
+        global data_new[:,i] = ( Data_old[:,2*i-1] +Data_old[:,2*i] )/2
+    end
+    return data_new
+end
+
+Data01_glucose = new_data_maker(Data01_glucose)
+Data02_glucose = new_data_maker(Data02_glucose)
+Data01_mutant = new_data_maker(Data01_mutant)
+Data02_mutant = new_data_maker(Data02_mutant)
 
 timevalues_general = [0.0, 10.0, 20.0, 30.0, 40.0, 60.0, 120.0]
 timevalues_mutant = [0.0, 10.0, 27.0, 35.0, 60.0, 120.0]
@@ -344,7 +361,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
     error = 0
     c_eq_store = []
     for (i, experiment) in enumerate(experimental_data)
-        try
+        #try
             c_eq = [1]
             if i == 2
                 c_eq = c_eq_store
@@ -386,14 +403,17 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                     c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model],)
                 end
                 for index_hxt = experiment.hxt_types #Kika
-                    error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
-                    #error = 0
+                    if i == 3 || i ==4
+                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, 1]) .^ 2)
+                    else
+                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
+                    end
                 end
             end
-        catch e
-            check_extra_error(e)
-            return Inf
-        end
+        #catch e
+        #    check_extra_error(e)
+        #    return Inf
+        #end
     end
     return error
 end
@@ -414,7 +434,8 @@ function timing_tests(problem_object, experimental_data, f)
 end
 
 function bounds_generator(θ_estimation)
-    bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
+    #bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
+    bounds = [(1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4)]
     newbounds = bounds;
     for i = 1:11
         newbounds[i] =θ_estimation[i].*bounds[i]
@@ -431,6 +452,8 @@ problem_object, system = model_initialize()
 
 #recent_optim = [108.85494114737465, 0.2453968003518383, 192.80816539102463, 0.1177373976181994, 999.9999999999998, 0.003289260224284602, 0.5161325800722115, 0.004065463645417084, 2.480803589634865, 2.25029572603142, 0.01449350855355677]
 recent_optim = [134.52784182509174, 0.0015412019527783324, 106878.28272739767, 0.9815579029845447, 7365.748548490533, 0.5521351876907349, 0.23685389717084945, 0.010378054271635965, 0.0089956215692705, 0.20829207546603598, 0.00012942780246890534] #346230
+recent_optim = [589.8410434505685, 2.9227195081107026e-6, 6.858911447026659e6, 650.5301116976499, 4.949225456067041e6, 0.009275252595440124, 0.0635229015465391, 0.5669868452606002, 0.01729063896065383, 0.4292280046131037, 4.5967643105873475e-5] # 345634.0872040614
+#recent_optim = [2.535804086268593, 0.02505751298664367, 792.362885178122, 339.3975141078158, 2.587345801169178e6, 0.4503383818811139, 0.00047145079585042516, 0.04160307113768421, 0.00448896954949097, 0.0007856698677441535, 0.0001550913731035463]  # value: 345701.01456409506
 bounds = bounds_generator(recent_optim)
 log_bounds = map(x -> (log(x[1]), log(x[2])), bounds)
 f(x) = cost_function(problem_object, x, experimental_data) # 3 är index för glukos
@@ -438,10 +461,10 @@ f(x) = cost_function(problem_object, x, experimental_data) # 3 är index för gl
 timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
-time = @elapsed x_min, f_min = p_est(f, log_bounds, 15, false)
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 20, false)
 println("The optimization took: $time")
 
-
+#=
 # Define the initial parameter values
 params = x_min
 
@@ -453,7 +476,7 @@ threshold = 3.84
 CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
 
 run_profile_likelihood(params, log_bounds, num_points, threshold)
-
+=#
 #Our best optimization this far
 
 
