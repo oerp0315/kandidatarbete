@@ -23,7 +23,7 @@ end
 #index_general = [1, 1, 2, 2, 3, 3, 4, 4]
 #index_mutant = [2, 2]
 index_general = [1, 2, 3, 3, 4]
-index_mutant =[4]
+index_mutant = [4]
 
 Data01_glucose = [0.74 0.1 0.06 0.05 0.76 0.13 23.02 26.98
     1.83 0.52 0.1 0.06 0.85 0.33 29.55 36.75
@@ -56,9 +56,9 @@ Data02_mutant = [23.83 20.11
 function new_data_maker(Data_old)
     size_matrix = size(Data_old)
     println(size_matrix)
-    data_new = zeros(size_matrix[1], trunc(Int,size_matrix[2]./2))
-    for i = 1:trunc(Int,size_matrix[2]./2)
-        global data_new[:,i] = ( Data_old[:,2*i-1] +Data_old[:,2*i] )/2
+    data_new = zeros(size_matrix[1], trunc(Int, size_matrix[2] ./ 2))
+    for i = 1:trunc(Int, size_matrix[2] ./ 2)
+        global data_new[:, i] = (Data_old[:, 2*i-1] + Data_old[:, 2*i]) / 2
     end
     return data_new
 end
@@ -376,10 +376,15 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                     θ[index_controller_Mig2] = zero_typefix
                 end
 
-                global c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
-                if c_eq == Inf
-                    return Inf
-                end
+            global c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
+            if c_eq == Inf
+                return Inf
+            end
+
+            if i == 1
+                c_eq_store = c_eq
+            end
+        end
 
                 if i == 1
                     c_eq_store = c_eq
@@ -387,16 +392,16 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
             end
             #println(c_eq)
 
-            θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
-            sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
-            if sol.retcode ≠ :Success
-                if sol.retcode ≠ :DtLessThanMin
-                    @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
-                end
-                return Inf
+        θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
+        sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
+        if sol.retcode ≠ :Success
+            if sol.retcode ≠ :DtLessThanMin
+                @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
             end
-            for (index_time_data, t) in enumerate(experiment.t)
-                index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
+            return Inf
+        end
+        for (index_time_data, t) in enumerate(experiment.t)
+            index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
 
                 if index_time_model == 1
                     c_t = sol.u[1]
@@ -437,9 +442,9 @@ end
 function bounds_generator(θ_estimation)
     #bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
     bounds = [(1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4)]
-    newbounds = bounds;
+    newbounds = bounds
     for i = 1:11
-        newbounds[i] =θ_estimation[i].*bounds[i]
+        newbounds[i] = θ_estimation[i] .* bounds[i]
     end
     return newbounds
 end
@@ -553,11 +558,4 @@ threshold = 3.84
 # save threshold
 CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
 
-run_profile_likelihood(params, log_bounds, num_points, threshold)
-=#
-#Our best optimization this far
-
-
-a = [108.85494114737465, 0.2453968003518383, 192.80816539102463, 0.1177373976181994, 999.9999999999998, 0.003289260224284602, 0.5161325800722115, 0.004065463645417084, 2.480803589634865, 2.25029572603142, 0.01449350855355677]
-
-#bounds = [(1e-1, 1e2), (1e1, 1e3), (1e-2, 1e2), (1e-2, 1e2), (1e2, 1e4), (1e3, 1e5), (1e1, 1e3), (1e-2, 1e2), (1e1, 1e3), (1e2, 1e4), (1e1, 1e3)]
+#run_profile_likelihood(params, log_bounds, 12, num_points, threshold)

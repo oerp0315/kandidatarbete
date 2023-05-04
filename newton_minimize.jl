@@ -122,18 +122,6 @@ function latin_hypercube(n_samples, log_bounds; seed=123)
 
     x_samples_log = success_samples
 
-    if pl_mode == false
-        # save generated samples in file
-        open("p_est_results/latin_hypercube.csv", "w") do io
-            writedlm(io, x_samples_log)
-        end
-    else
-        # save generated samples in file
-        open("profilelikelihood_results/pl_latin_hypercube", "w") do io
-            writedlm(io, x_samples_log)
-        end
-    end
-
     return x_samples_log
 end
 
@@ -311,24 +299,24 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0, run
             truncate(timelog_file, 0)
             close(timelog_file)
         end
-    end
 
-    need_new_samples = true
+        # previous bounds
+        if isfile("p_est_results/bounds.csv")
+            read_previous_bounds = CSV.File("p_est_results/bounds.csv") |> DataFrame
+            previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
 
-    # previous bounds
-    if isfile("p_est_results/bounds.csv")
-        read_previous_bounds = CSV.File("p_est_results/bounds.csv") |> DataFrame
-        previous_bounds = [(x, y) for (x, y) in zip(read_previous_bounds[:, 1], read_previous_bounds[:, 2])]
-
-        if log_bounds == previous_bounds && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
-            x_samples_log = readdlm("p_est_results/latin_hypercube.csv", Float64)
-            need_new_samples = false
+            if log_bounds == previous_bounds && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
+                x_samples_log = readdlm("p_est_results/latin_hypercube.csv", Float64)
+            end
         end
-    end
 
-    if need_new_samples && run_latin_hypercube
         # Generate Latin hypercube samples in the search space
         x_samples_log = latin_hypercube(n_samples, log_bounds)
+
+        # save generated samples in file
+        open("p_est_results/latin_hypercube.csv", "w") do io
+            writedlm(io, x_samples_log)
+        end
 
         # log used bounds
         CSV.write("p_est_results/bounds.csv", DataFrame(log_bounds))
