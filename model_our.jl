@@ -373,31 +373,31 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                     θ[index_controller_Mig2] = zero_typefix
                 end
 
-            global c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
-            if c_eq == Inf
-                return Inf
+                global c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
+                if c_eq == Inf
+                    return Inf
+                end
+
+                if i == 1
+                    c_eq_store = c_eq
+                end
             end
 
             if i == 1
                 c_eq_store = c_eq
             end
-        end
-
-                if i == 1
-                    c_eq_store = c_eq
-                end
             #println(c_eq)
 
-        θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
-        sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
-        if sol.retcode ≠ :Success
-            if sol.retcode ≠ :DtLessThanMin
-                @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
+            θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
+            sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
+            if sol.retcode ≠ :Success
+                if sol.retcode ≠ :DtLessThanMin
+                    @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
+                end
+                return Inf
             end
-            return Inf
-        end
-        for (index_time_data, t) in enumerate(experiment.t)
-            index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
+            for (index_time_data, t) in enumerate(experiment.t)
+                index_time_model = convert.(Int64, findfirst(isone, sol.t .>= t))
 
                 if index_time_model == 1
                     c_t = sol.u[1]
@@ -405,11 +405,11 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                     c_t = interpolate(t, sol.u[index_time_model-1], sol.u[index_time_model], sol.t[index_time_model-1], sol.t[index_time_model])
                 end
                 for index_hxt = experiment.hxt_types #Kika
-                    if i == 3 || i ==4
+                    if i == 3 || i == 4
                         error += sum((c_t[index_first_Hxt-1+4] - experiment.c[index_time_data, 1]) .^ 2)
                     else
                         #error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)  För utan mutant
-                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, ceil(Int,index_hxt/2) ]) .^ 2) #Håll koll på så index (+5 blir rätt) För med mutant
+                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, ceil(Int, index_hxt / 2)]) .^ 2) #Håll koll på så index (+5 blir rätt) För med mutant
                     end
                 end
             end
@@ -446,7 +446,7 @@ function bounds_generator(θ_estimation)
     return newbounds
 end
 
-function plot_kinetic(θ,experimental_data;
+function plot_kinetic(θ, experimental_data;
     index_first_Hxt=6, index_glucose=3, index_controller_Rgt1=11, index_controller_Mig2=14)
 
     θ_type = eltype(θ)
@@ -461,14 +461,14 @@ function plot_kinetic(θ,experimental_data;
     #labels = string.(states(system))
     #labels_matrix = reshape(labels, 1 ,length(labels))
     #println(labels_matrix)
-    
+
     c_eq_store = []
     for (i, experiment) in enumerate(experimental_data)
         #try
         c_eq = [1]
         if i == 2
             c_eq = c_eq_store
-            else
+        else
             if i == 3
                 θ[index_controller_Rgt1] = zero_typefix
                 θ[index_controller_Mig2] = one_typefix
@@ -497,15 +497,15 @@ function plot_kinetic(θ,experimental_data;
         end
 
         model_conc = transpose(Matrix(sol))
-        if i == 1 || i==2
-            plot(sol.t, model_conc[:,6], labels ="mHXT1")
-            plot!(sol.t, model_conc[:,7], labels ="mHXT2")
-            plot!(sol.t, model_conc[:,8], labels ="mHXT3")
-            plot!(sol.t, model_conc[:,9], labels ="mHXT4")
-            plot!(experiment.t, experiment.c, labels = ["mHXT1" "mHXT1" "mHXT2" "mHXT2" "mHXT3" "mHXT3" "mHXT4" "mHXT4"], seriestype=:scatter)
+        if i == 1 || i == 2
+            plot(sol.t, model_conc[:, 6], labels="mHXT1")
+            plot!(sol.t, model_conc[:, 7], labels="mHXT2")
+            plot!(sol.t, model_conc[:, 8], labels="mHXT3")
+            plot!(sol.t, model_conc[:, 9], labels="mHXT4")
+            plot!(experiment.t, experiment.c, labels=["mHXT1" "mHXT1" "mHXT2" "mHXT2" "mHXT3" "mHXT3" "mHXT4" "mHXT4"], seriestype=:scatter)
         else
-            plot(sol.t, model_conc[:,9], labels ="mHXT4")
-            plot!(experiment.t, experiment.c, labels = ["mHXT4" "mHXT4"], seriestype=:scatter)
+            plot(sol.t, model_conc[:, 9], labels="mHXT4")
+            plot!(experiment.t, experiment.c, labels=["mHXT4" "mHXT4"], seriestype=:scatter)
         end
         #plot!(legend=:outerbottom, legendcolumn=5)
         savefig("p_est_results/plot_ode_over_t$i")
@@ -538,16 +538,16 @@ timing_tests(problem_object, experimental_data, f)
 time = @elapsed x_min, f_min = p_est(f, log_bounds, 1000, false)
 println("The optimization took: $time")
 
-plot_kinetic(long_mutant_optim,experimental_data)
+plot_kinetic(long_mutant_optim, experimental_data)
 f(long_mutant_optim)
 
-plot_kinetic(easy_model_optim,experimental_data)
+plot_kinetic(easy_model_optim, experimental_data)
 f(log.(long_small_optim))
 
 
-plot_kinetic(long_small_optim,experimental_data)
+plot_kinetic(long_small_optim, experimental_data)
 f(ones(11))
-#=
+
 # Define the initial parameter values
 params = x_min
 
@@ -558,4 +558,4 @@ threshold = 3.84
 # save threshold
 CSV.write("profilelikelihood_results/threshold.csv", DataFrame(threshold=threshold))
 
-#run_profile_likelihood(params, log_bounds, 12, num_points, threshold)
+run_profile_likelihood(params, log_bounds, 50, num_points, threshold)
