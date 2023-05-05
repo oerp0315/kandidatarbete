@@ -20,9 +20,9 @@ struct experiment_results
     t::AbstractVector
 end
 
-#index_general = [1, 1, 2, 2, 3, 3, 4, 4]
+index_general = [1, 2, 3, 4, 5, 6, 7, 8]
 #index_mutant = [2, 2]
-index_general = [1, 2, 3, 3, 4]
+index_general = [1, 2, 3, 4]
 index_mutant = [4]
 
 Data01_glucose = [0.74 0.1 0.06 0.05 0.76 0.13 23.02 26.98
@@ -73,9 +73,6 @@ timevalues_mutant = [0.0, 10.0, 27.0, 35.0, 60.0, 120.0]
 
 experiment1 = experiment_results(3.346e8, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
 experiment2 = experiment_results(6.685e8, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
-
-#experiment1 = experiment_results(1, index_general, Data01_glucose, timevalues_general) #Enhet glukos!!!
-#experiment2 = experiment_results(1, index_general, Data02_glucose, timevalues_general) # Enhet glukos!!!
 
 experiment3 = experiment_results(3.346e8, index_mutant, Data01_mutant, timevalues_mutant)
 experiment4 = experiment_results(3.346e8, index_mutant, Data02_mutant, timevalues_mutant)
@@ -389,7 +386,6 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                 if i == 1
                     c_eq_store = c_eq
                 end
-            end
             #println(c_eq)
 
         θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
@@ -410,9 +406,10 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector;
                 end
                 for index_hxt = experiment.hxt_types #Kika
                     if i == 3 || i ==4
-                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, 1]) .^ 2)
+                        error += sum((c_t[index_first_Hxt-1+4] - experiment.c[index_time_data, 1]) .^ 2)
                     else
-                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
+                        #error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)  För utan mutant
+                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, ceil(Int,index_hxt/2) ]) .^ 2) #Håll koll på så index (+5 blir rätt) För med mutant
                     end
                 end
             end
@@ -527,6 +524,7 @@ recent_optim = [134.52784182509174, 0.0015412019527783324, 106878.28272739767, 0
 long_optim = [589.8410434505685, 2.9227195081107026e-6, 6.858911447026659e6, 650.5301116976499, 4.949225456067041e6, 0.009275252595440124, 0.0635229015465391, 0.5669868452606002, 0.01729063896065383, 0.4292280046131037, 4.5967643105873475e-5] # 345634.0872040614
 recent_optim = [4.844947112856774, 0.0059179158386091614, 668779.8080657626, 0.0009815579029845446, 781.3331511895273, 0.0008234210611706963, 6.28495538899901, 3.1678420614201825, 0.00018890191375355153, 13.478754058675495, 0.0001405683703016666]
 long_mutant_optim = [0.18758807993730844, 0.0633456607349054, 0.018986351968486283, 0.011762564305639977, 67541.79255067433, 0.01495005059304239, 0.0011232323510279865, 105.77247960679242, 999.9999999999998, 1432.3471069668688, 0.0027407599740753453]
+long_small_optim = [352.38556993461714, 1.203151470606249, 234.6312186779165, 0.0009815579029845446, 942.8892686049694, 0.5737481588784998, 0.00023685389717084933, 10.378054271635962, 8.9956215692705, 14.349665607161935, 0.00010422629684615832] # 13175.49
 #recent_optim = [2.535804086268593, 0.02505751298664367, 792.362885178122, 339.3975141078158, 2.587345801169178e6, 0.4503383818811139, 0.00047145079585042516, 0.04160307113768421, 0.00448896954949097, 0.0007856698677441535, 0.0001550913731035463]  # value: 345701.01456409506
 recent_optim = [70.46625795659484, 0.3498512731855041, 5.738590558662932e-5, 0.046716939870145247, 1.9069018102692126e6, 0.00011573738478331237, 0.0021174158490855697, 424.86287137133365, 948.3406330032589, 1429.6672832468535, 0.0007285444682527054]
 easy_model_optim = [4.844947112856774, 0.0059179158386091614, 668779.8080657626, 0.0009815579029845446, 781.3331511895273, 0.0008234210611706963, 6.28495538899901, 3.1678420614201825, 0.00018890191375355153, 13.478754058675495, 0.0001405683703016666] #  14092 
@@ -537,15 +535,17 @@ f(x) = cost_function(problem_object, x, experimental_data) # 3 är index för gl
 timing_tests(problem_object, experimental_data, f)
 
 # run the parameter estimation
-time = @elapsed x_min, f_min = p_est(f, log_bounds, 20, false)
+time = @elapsed x_min, f_min = p_est(f, log_bounds, 1000, false)
 println("The optimization took: $time")
 
 plot_kinetic(long_mutant_optim,experimental_data)
 f(long_mutant_optim)
 
 plot_kinetic(easy_model_optim,experimental_data)
-f(log.(easy_model_optim))
+f(log.(long_small_optim))
 
+
+plot_kinetic(long_small_optim,experimental_data)
 f(ones(11))
 #=
 # Define the initial parameter values
