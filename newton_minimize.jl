@@ -95,14 +95,15 @@ function latin_hypercube(n_samples, log_bounds; seed=123)
         end
     end
 
+    return x_samples_log
+end
+
+function sample_correction(x_samples_log, n_samples)
     # Failed samples
     fail_samples = []
 
     # Successful samples
     success_samples = []
-
-    # function value list
-    function_values = []
 
     while length(success_samples) < n_samples
         for sample in eachrow(x_samples_log)
@@ -110,14 +111,13 @@ function latin_hypercube(n_samples, log_bounds; seed=123)
                 push!(fail_samples, sample)
             elseif length(success_samples) < n_samples
                 push!(success_samples, sample)
-                push!(function_values, f(sample))
             end
         end
-        if n_samples - length(success_samples) < length(bounds)
-            x_samples_log = latin_hypercube(20, log_bounds)
+        if n_samples - length(success_samples) < length(log_bounds)
+            x_samples_log = latin_hypercube(12, log_bounds)
         else
             x_samples_log = latin_hypercube(n_samples - length(success_samples), log_bounds)
-        end
+        end 
     end
 
     x_samples_log = success_samples
@@ -308,18 +308,20 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0, run
             if log_bounds == previous_bounds && length(readdlm("p_est_results/latin_hypercube.csv", Float64)[:, 1]) == n_samples
                 x_samples_log = readdlm("p_est_results/latin_hypercube.csv", Float64)
             end
+        else
+            # Generate Latin hypercube samples in the search space
+            x_samples_log = latin_hypercube(n_samples, log_bounds)
+
+            x_samples_log = sample_correction(x_samples_log, n_samples)
+
+            # save generated samples in file
+            open("p_est_results/latin_hypercube.csv", "w") do io
+                writedlm(io, x_samples_log)
+            end
+
+            # log used bounds
+            CSV.write("p_est_results/bounds.csv", DataFrame(log_bounds))
         end
-
-        # Generate Latin hypercube samples in the search space
-        x_samples_log = latin_hypercube(n_samples, log_bounds)
-
-        # save generated samples in file
-        open("p_est_results/latin_hypercube.csv", "w") do io
-            writedlm(io, x_samples_log)
-        end
-
-        # log used bounds
-        CSV.write("p_est_results/bounds.csv", DataFrame(log_bounds))
     end
 
     # if the gradient is not good enough the program will terminate
