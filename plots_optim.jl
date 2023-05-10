@@ -3,6 +3,8 @@ using CSV
 using DataFrames
 using LaTeXStrings
 
+
+
 function plot_pl()
     data = CSV.read("profilelikelihood_results/profile_likelihood.csv", DataFrame;
         header=[:fixed_parameter_index, :fixed_parameter, :parameters, :cost_function_values])
@@ -30,8 +32,10 @@ function plot_waterfall()
     y = data[:, 5]
     sort!(y)
     x = collect(1:length(y))
+    #y = log.(y)
 
-    plot(x, y, xaxis="Startvärden", yaxis="Kostnadsfunktion", lw=2, labelfontsize=15, legend=false)
+
+    plot(x[1:end-300], y[1:end-300], xaxis="Startvärden", yaxis="Kostnadsfunktion", lw=2, labelfontsize=15, legend=false,  linewidth = 4, c=RGB(0.41, 0.82, 0.91))
     savefig("p_est_results/waterfall_plot")
 
     n_convergent_samples = 0
