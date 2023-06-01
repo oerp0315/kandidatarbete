@@ -117,7 +117,7 @@ function sample_correction(x_samples_log, n_samples)
             x_samples_log = latin_hypercube(12, log_bounds)
         else
             x_samples_log = latin_hypercube(n_samples - length(success_samples), log_bounds)
-        end 
+        end
     end
 
     x_samples_log = success_samples
@@ -195,7 +195,6 @@ function opt(f::Function, x, sample_num, iter, log_bounds; max_iter=1000)
 
         # Evaluate the function and its gradient and Hessian at the current point
         grad = ForwardDiff.gradient(f, x)
-        #hess = ForwardDiff.hessian(f, x)
 
         # To compare with the current x in termination criteria 
         x_prev = x
@@ -324,11 +323,6 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0, run
         end
     end
 
-    # if the gradient is not good enough the program will terminate
-    """if check_gradient(f, x_samples_log[1, :]) == Inf
-        return Inf
-    end"""
-
     # start values, set for first sample
     x_min = x_samples_log[1, :]
     f_min = f(x_min)
@@ -385,7 +379,6 @@ function p_est(f::Function, log_bounds, n_samples, pl_mode; x_samples_log=0, run
     end
 
     if !pl_mode
-
         CSV.write("p_est_results/sample_data.csv", DataFrame(sample_num=collect(1:length(x_sample_list)),
             min_iter=iter_res,
             x_sample_list=x_sample_list,
