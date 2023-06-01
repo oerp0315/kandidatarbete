@@ -9,9 +9,6 @@ using CSV
 include("newton_minimize.jl")
 include("profile_likelihood.jl")
 
-println("Nu kör vi!!!")
-
-# Skriv om
 "Object for experimental results"
 struct experiment_results
     glucose_conc::Number
@@ -81,17 +78,21 @@ experiment2 = experiment_results(6.685e8, index_general, Data02_glucose, timeval
 experiment3 = experiment_results(3.346e8, index_mutant, Data01_mutant, timevalues_mutant)
 experiment4 = experiment_results(3.346e8, index_mutant, Data02_mutant, timevalues_mutant)
 
-experimental_data = [experiment1, experiment2, experiment3, experiment4] #Exkludera experiment3 och 4 om mutantdatan inte ska tas med i optimeringen
+#If with mutant data
+experimental_data = [experiment1, experiment2, experiment3, experiment4]
+
+#If without mutant data
+experimental_data = [experiment1, experiment2]
 
 "Constructs the model with 11 parameters
 return a problem_object"
 function model_initialize()
     @parameters t Extracellular_glucose k_a_Snf3 k_i_Snf3g k_i_Std1 K_Std1_Rgt1 k_i_Mth1 K_Mth1_Rgt1 k_p_ATP k_i_Snf1 k_i_Mig1 T_mHXT1 θ_activation controller_Rgt1 controller_Mig2
-    @variables Snf3(t) Snf3g(t) Std1(t) Mth1(t) Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t) mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
+    @variables Snf3(t) Snf3g(t) Std1(t) Mth1(t) Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t) mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t)
     D = Differential(t)
 
-    k_t_Snf3 = 0.010 #Egentilgen från RGT2!!
-    k_d_Snf3 = 0.231 #Egentilgen från RGT2!!
+    k_t_Snf3 = 0.010 #From RGT2!!
+    k_d_Snf3 = 0.231 #From RGT2!!
     k_t_Std1 = 42.8
     k_d_Std1 = 0.087
     k_t_Mth1 = 6.000
@@ -124,7 +125,7 @@ function model_initialize()
 
 
     V_mSNF3 = 50
-    θ_Mig1_Snf3 = 0.000  #Ej tillräckligt med decimaler
+    θ_Mig1_Snf3 = 0.000  #Not enough decimals
     θ_Mig2_Snf3 = 0.010
     V_mSTD1 = 0.040
     θ_Rgt1_active_Std1 = 0.050
@@ -151,7 +152,7 @@ function model_initialize()
 
     V_mMIG1 = 0.020
     θ_Mig1_MIG1 = 0.020
-    θ_Mig2_MIG1 = 0.000 #Ej tillräckligt med decimaler 
+    θ_Mig2_MIG1 = 0.000 #Not enough decimals
     V_mMIG2 = 0.230
     θ_Rgt1_active_MIG2 = 0.100
     θ_Mig1_MIG2 = 0.001
@@ -201,8 +202,6 @@ function model_initialize()
     @named system = ODESystem(equation_system)
     system = structural_simplify(system)
 
-
-    # Intialvärden som kommer skrivas över
     c0 = zeros(24)
     θin = zeros(14)
 
@@ -262,8 +261,8 @@ function model_initialize_big()
     @variables Snf3(t) Snf3g(t) Std1(t) Mth1(t) Rgt1_active(t) mSNF3(t) mSTD1(t) mMTH1(t) mRGT1(t) mHXT1(t) Hxt1(t) mHXT2(t) Hxt2(t) mHXT3(t) Hxt3(t) mHXT4(t) Hxt4(t) mSNF1(t) Snf1(t) Cellular_glucose(t) mMIG1(t) Mig1(t) mMIG2(t) Mig2(t) Rgt1(t) #Variabler i modellen
     D = Differential(t)
 
-    k_t_Snf3 = 0.010 #Egentilgen från RGT2!!
-    k_d_Snf3 = 0.231 #Egentilgen från RGT2!!
+    k_t_Snf3 = 0.010 #from RGT2!!
+    k_d_Snf3 = 0.231 #from RGT2!!
     k_t_Std1 = 42.8
     k_d_Std1 = 0.087
     k_t_Mth1 = 6.000
@@ -296,7 +295,7 @@ function model_initialize_big()
 
     
     V_mSNF3 = 50
-    #θ_Mig1_Snf3 = 0.000  #Ej tillräckligt med decimaler
+    #θ_Mig1_Snf3 = 0.000  #Not enough decimals
     θ_Mig2_Snf3 = 0.010
     V_mSTD1 = 0.040
     θ_Rgt1_active_Std1 = 0.050
@@ -324,7 +323,7 @@ function model_initialize_big()
 
     V_mMIG1 = 0.020
     θ_Mig1_MIG1 = 0.020
-    #θ_Mig2_MIG1 = 0.000 #Ej tillräckligt med decimaler
+    #θ_Mig2_MIG1 = 0.000 #Not enough decimals
     V_mMIG2 = 0.230
     θ_Rgt1_active_MIG2 = 0.100
     θ_Mig1_MIG2 = 0.001
@@ -376,7 +375,6 @@ function model_initialize_big()
     @named system = ODESystem(equation_system)
     system = structural_simplify(system)
 
-    # Intialvärden som kommer skrivas över
     c0 = zeros(24)
     θin = zeros(16)
 
@@ -507,7 +505,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
     error = 0
     c_eq_store = []
     for (i, experiment) in enumerate(experimental_data)
-        #try
+        try
             c_eq = [1]
             if i == 2
                 c_eq = c_eq_store
@@ -555,18 +553,18 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
                     if i == 3 || i == 4
                         error += sum((c_t[index_first_Hxt-1+4] - experiment.c[index_time_data, 1]) .^ 2)
                     else
-                        #För utan mutant
+                        #For without mutant
                         #error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
                         
-                        #För med mutant
+                        #For with mutant
                         error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, ceil(Int, index_hxt / 2)]) .^ 2) #Håll koll på så index (+5 blir rätt)
                     end
                 end
             end
-        #catch e 
-        #    check_extra_error(e)
-        #    return Inf
-        #end
+        catch e 
+            check_extra_error(e)
+            return Inf
+        end
     end
     return error
 end
@@ -642,7 +640,6 @@ function plot_kinetic(_θ,experimental_data,
 
     c_eq_store = []
     for (i, experiment) in enumerate(experimental_data)
-        #try
         c_eq = [1]
         if i == 2
             c_eq = c_eq_store
