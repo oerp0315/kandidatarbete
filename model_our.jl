@@ -47,7 +47,7 @@ Data02_mutant = [23.83 20.11
     85.12 77.12
     92.12 81.11]
 
-
+"Take the avrages of repeted experiments"
 function new_data_maker(Data_old)
     size_matrix = size(Data_old)
     println(size_matrix)
@@ -124,7 +124,7 @@ function model_initialize()
 
 
     V_mSNF3 = 50
-    θ_Mig1_Snf3 = 0.000  #Rätt?
+    θ_Mig1_Snf3 = 0.000  #Ej tillräckligt med decimaler
     θ_Mig2_Snf3 = 0.010
     V_mSTD1 = 0.040
     θ_Rgt1_active_Std1 = 0.050
@@ -151,14 +151,13 @@ function model_initialize()
 
     V_mMIG1 = 0.020
     θ_Mig1_MIG1 = 0.020
-    θ_Mig2_MIG1 = 0.000 #????? 
+    θ_Mig2_MIG1 = 0.000 #Ej tillräckligt med decimaler 
     V_mMIG2 = 0.230
     θ_Rgt1_active_MIG2 = 0.100
     θ_Mig1_MIG2 = 0.001
     θ_Mig2_MIG2 = 0.010
     V_mSNF1 = 2.900
 
-    #Fixa värden!!!!!!
     k_d_mHXT1 = 0.03
     k_d_mHXT2 = 0.03
     k_d_mHXT3 = 0.03
@@ -176,41 +175,31 @@ function model_initialize()
         D(Snf3g) ~ k_a_Snf3 * Snf3 * Extracellular_glucose - k_i_Snf3g * Snf3g,
         D(Std1) ~ k_t_Std1 * mSTD1 - k_d_Std1 * Std1 - k_i_Std1 * Std1 * Snf3g,
         D(Mth1) ~ k_t_Mth1 * mMTH1 - k_d_Mth1 * Mth1 - k_i_Mth1 * Mth1 * Snf3g,
-        D(Rgt1) ~ k_t_Rgt1 * mRGT1 - k_d_Rgt1 * Rgt1, # Annat utryck om vi testar fosforylering
+        D(Rgt1) ~ k_t_Rgt1 * mRGT1 - k_d_Rgt1 * Rgt1,
         Rgt1_active ~ K_Std1_Rgt1 * Std1 * Rgt1 + K_Mth1_Rgt1 * Mth1 * Rgt1,
-
-        # Kinetik om vi antar mindre steady-state
-        #D(Snf3) ~ k_t_Snf3*mSNF3- k_d_Snf3*Snf3 - k_a_Snf3*Snf3*Extracellular_glucose + k_i_Snf3g*Snf3g,
-        #D(Std1) ~ k_t_Std1*mSTD1 - k_d_Std1*Std1 - k_i_Std1*Std1*Snf3g- k_a_Std1_Rgt1*std1*Rgt1+ k_i_Std1_Rgt1*Std1_Rgt1,
-        #D(Mth1) ~ k_t_Mth1*mMTH1 - k_d_Mth1*Mth1 - k_i_Mth1*Mth1*Snf3g- k_a_Mth1_Rgt1*Rgt1*Mth1 + k_i_Mth1_Rgt1*Mth1_Rgt1,
-        #D(Rgt1) ~ k_t_Rgt1*mRGT1 - k_d_Rgt1*Rgt1 - k_a_Std1_Rgt1*Std1*Rgt1 + k_i_Std1_Rgt1*Std1_Rgt1 - k_a_Mth1_Rgt1*Mth1*Rgt1 + k_i_Mth1_Rgt1*Mth1_Rgt1, # Annat utryck om vi testar fosforylering
-        #D(Std1_Rgt1) ~ k_a_Std1_Rgt1 *Std1*Rgt1 - k_i_Std1_Rgt1*Std1_Rgt1, 
-        #D(Mth1_Rgt1) ~ k_a_Mth1_Rgt1 *Mth1*Rgt1 - k_i_Mth1_Rgt1*Mth1_Rgt1,
-        #Rgt1_active ~ Std1_Rgt1 + Mth1_Rgt1_
 
         D(Hxt1) ~ k_t_Hxt1 * mHXT1 - k_d_Hxt1 * Hxt1,
         D(Hxt2) ~ k_t_Hxt2 * mHXT2 - k_d_Hxt2 * Hxt2,
         D(Hxt3) ~ k_t_Hxt3 * mHXT3 - k_d_Hxt3 * Hxt3,
         D(Hxt4) ~ k_t_Hxt4 * mHXT4 - k_d_Hxt4 * Hxt4,
-        D(Snf1) ~ k_t_Snf1 * mSNF1 - k_d_Snf1 * Snf1 - k_i_Snf1 * Snf1 * Cellular_glucose, #Bytt minus på sista termen
+        D(Snf1) ~ k_t_Snf1 * mSNF1 - k_d_Snf1 * Snf1 - k_i_Snf1 * Snf1 * Cellular_glucose,
         D(Mig1) ~ k_t_Mig1 * mMIG1 - k_d_Mig1 * Mig1 - k_i_Mig1 * Mig1 * Snf1,
         D(Mig2) ~ k_t_Mig2 * mMIG2 - k_d_Mig2 * Mig2,
         D(Cellular_glucose) ~ V_transport_Hxt1 * Extracellular_glucose / (K_transport_Hxt1 + Extracellular_glucose) + V_transport_Hxt2 * Extracellular_glucose / (K_transport_Hxt2 + Extracellular_glucose) + V_transport_Hxt3 * Extracellular_glucose / (K_transport_Hxt3 + Extracellular_glucose) + V_transport_Hxt4 * Extracellular_glucose / (K_transport_Hxt4 + Extracellular_glucose) - k_p_ATP * Cellular_glucose,
 
-        #mRNA
         D(mSNF3) ~ -k_d_mSNF3 * mSNF3 + V_mSNF3 / (1 + θ_Mig1_Snf3 * Mig1) / (1 + θ_Mig2_Snf3 * Mig2),
         D(mSTD1) ~ -k_d_mSTD1 * mSTD1 + V_mSTD1 / (1 + θ_Rgt1_active_Std1 * Rgt1_active),
         D(mMTH1) ~ -k_d_mMTH1 * mMTH1 + V_mMTH1 / (1 + θ_Rgt1_active_MTH1 * Rgt1_active) / (1 + θ_Mig1_MTH1 * Mig1) / (1 + θ_Mig2_MTH1 * Mig2),
         D(mRGT1) ~ controller_Rgt1 * (-k_d_mRGT1 * mRGT1 + V_mRGT1),
-        D(mHXT1) ~ -k_d_mHXT1 * mHXT1 + V_mHXT1 * (T_mHXT1 + ((1 - T_mHXT1) * θ_activation * Rgt1) / (1 + θ_activation * Rgt1)) / (1 + θ_Rgt1_active_HXT1 * Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
+        D(mHXT1) ~ -k_d_mHXT1 * mHXT1 + V_mHXT1 * (T_mHXT1 + ((1 - T_mHXT1) * θ_activation * Rgt1) / (1 + θ_activation * Rgt1)) / (1 + θ_Rgt1_active_HXT1 * Rgt1_active), 
         D(mHXT2) ~ -k_d_mHXT2 * mHXT2 + V_mHXT2 / (1 + θ_Rgt1_active_HXT2 * Rgt1_active) / (1 + θ_Mig1_HXT2 * Mig1) / (1 + θ_Mig2_HXT2 * Mig2),
         D(mHXT3) ~ -k_d_mHXT3 * mHXT3 + V_mHXT3 / (1 + θ_Rgt1_active_HXT3 * Rgt1_active) / (1 + θ_Mig1_HXT3 * Mig1) / (1 + θ_Mig2_HXT3 * Mig2),
         D(mHXT4) ~ -k_d_mHXT4 * mHXT4 + V_mHXT4 / (1 + θ_Rgt1_active_HXT4 * Rgt1_active) / (1 + θ_Mig1_HXT4 * Mig1) / (1 + θ_Mig2_HXT4 * Mig2), D(mMIG1) ~ -k_d_mMIG1 * mMIG1 + V_mMIG1 / (1 + θ_Mig1_MIG1 * Mig1) / (1 + θ_Mig2_MIG1 * Mig2),
         D(mMIG2) ~ controller_Mig2 * (-k_d_mMIG2 * mMIG2 + V_mMIG2 / (1 + θ_Rgt1_active_MIG2 * Rgt1_active) / (1 + θ_Mig1_MIG2 * Mig1) / (1 + θ_Mig2_MIG2 * Mig2)),
         D(mSNF1) ~ -k_d_mSNF1 * mSNF1 + V_mSNF1]
 
-    @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
-    system = structural_simplify(system) #Skriver om systemet så det blir lösbart
+    @named system = ODESystem(equation_system)
+    system = structural_simplify(system)
 
 
     # Intialvärden som kommer skrivas över
@@ -261,8 +250,8 @@ function model_initialize()
     CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(system)))
     CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:14), C=parameters(system)))
 
-    tspan = (0.0, 10) #Tiden vi kör modellen under
-    problem_object = ODEProblem(system, u0, tspan, p)  #Definierar vad som ska beräknas
+    tspan = (0.0, 10)
+    problem_object = ODEProblem(system, u0, tspan, p)
     return problem_object, system
 end
 
@@ -307,7 +296,7 @@ function model_initialize_big()
 
     
     V_mSNF3 = 50
-    #θ_Mig1_Snf3 = 0.000  #Rätt?
+    #θ_Mig1_Snf3 = 0.000  #Ej tillräckligt med decimaler
     θ_Mig2_Snf3 = 0.010
     V_mSTD1 = 0.040
     θ_Rgt1_active_Std1 = 0.050
@@ -335,14 +324,13 @@ function model_initialize_big()
 
     V_mMIG1 = 0.020
     θ_Mig1_MIG1 = 0.020
-    #θ_Mig2_MIG1 = 0.000 #????? 
+    #θ_Mig2_MIG1 = 0.000 #Ej tillräckligt med decimaler
     V_mMIG2 = 0.230
     θ_Rgt1_active_MIG2 = 0.100
     θ_Mig1_MIG2 = 0.001
     θ_Mig2_MIG2 = 0.010
     V_mSNF1 = 2.900
 
-    #Fixa värden!!!!!!
     k_d_mHXT1 = 0.03
     k_d_mHXT2 = 0.03
     k_d_mHXT3 = 0.03
@@ -360,23 +348,15 @@ function model_initialize_big()
         D(Snf3g) ~ k_a_Snf3 * Snf3 * Extracellular_glucose - k_i_Snf3g * Snf3g,
         D(Std1) ~ k_t_Std1 * mSTD1 - k_d_Std1 * Std1 - k_i_Std1 * Std1 * Snf3g,
         D(Mth1) ~ k_t_Mth1 * mMTH1 - k_d_Mth1 * Mth1 - k_i_Mth1 * Mth1 * Snf3g,
-        D(Rgt1) ~ k_t_Rgt1 * mRGT1 - k_d_Rgt1 * Rgt1, # Annat utryck om vi testar fosforylering
+        D(Rgt1) ~ k_t_Rgt1 * mRGT1 - k_d_Rgt1 * Rgt1,
         Rgt1_active ~ K_Std1_Rgt1 * Std1 * Rgt1 + K_Mth1_Rgt1 * Mth1 * Rgt1,
 
-        # Kinetik om vi antar mindre steady-state
-        #D(Snf3) ~ k_t_Snf3*mSNF3- k_d_Snf3*Snf3 - k_a_Snf3*Snf3*Extracellular_glucose + k_i_Snf3g*Snf3g,
-        #D(Std1) ~ k_t_Std1*mSTD1 - k_d_Std1*Std1 - k_i_Std1*Std1*Snf3g- k_a_Std1_Rgt1*std1*Rgt1+ k_i_Std1_Rgt1*Std1_Rgt1,
-        #D(Mth1) ~ k_t_Mth1*mMTH1 - k_d_Mth1*Mth1 - k_i_Mth1*Mth1*Snf3g- k_a_Mth1_Rgt1*Rgt1*Mth1 + k_i_Mth1_Rgt1*Mth1_Rgt1,
-        #D(Rgt1) ~ k_t_Rgt1*mRGT1 - k_d_Rgt1*Rgt1 - k_a_Std1_Rgt1*Std1*Rgt1 + k_i_Std1_Rgt1*Std1_Rgt1 - k_a_Mth1_Rgt1*Mth1*Rgt1 + k_i_Mth1_Rgt1*Mth1_Rgt1, # Annat utryck om vi testar fosforylering
-        #D(Std1_Rgt1) ~ k_a_Std1_Rgt1 *Std1*Rgt1 - k_i_Std1_Rgt1*Std1_Rgt1, 
-        #D(Mth1_Rgt1) ~ k_a_Mth1_Rgt1 *Mth1*Rgt1 - k_i_Mth1_Rgt1*Mth1_Rgt1,
-        #Rgt1_active ~ Std1_Rgt1 + Mth1_Rgt1_
 
         D(Hxt1) ~ k_t_Hxt1 * mHXT1 - k_d_Hxt1 * Hxt1,
         D(Hxt2) ~ k_t_Hxt2 * mHXT2 - k_d_Hxt2 * Hxt2,
         D(Hxt3) ~ k_t_Hxt3 * mHXT3 - k_d_Hxt3 * Hxt3,
         D(Hxt4) ~ k_t_Hxt4 * mHXT4 - k_d_Hxt4 * Hxt4,
-        D(Snf1) ~ k_t_Snf1 * mSNF1 - k_d_Snf1 * Snf1 - k_i_Snf1 * Snf1 * Cellular_glucose, #Bytt minus på sista termen
+        D(Snf1) ~ k_t_Snf1 * mSNF1 - k_d_Snf1 * Snf1 - k_i_Snf1 * Snf1 * Cellular_glucose,
         D(Mig1) ~ k_t_Mig1 * mMIG1 - k_d_Mig1 * Mig1 - k_i_Mig1 * Mig1 * Snf1,
         D(Mig2) ~ k_t_Mig2 * mMIG2 - k_d_Mig2 * Mig2,
         D(Cellular_glucose) ~ V_transport_Hxt1 * Extracellular_glucose / (K_transport_Hxt1 + Extracellular_glucose) + V_transport_Hxt2 * Extracellular_glucose / (K_transport_Hxt2 + Extracellular_glucose) + V_transport_Hxt3 * Extracellular_glucose / (K_transport_Hxt3 + Extracellular_glucose) + V_transport_Hxt4 * Extracellular_glucose / (K_transport_Hxt4 + Extracellular_glucose) - k_p_ATP * Cellular_glucose,
@@ -386,16 +366,15 @@ function model_initialize_big()
         D(mSTD1) ~ -k_d_mSTD1 * mSTD1 + V_mSTD1 / (1 + θ_Rgt1_active_Std1 * Rgt1_active),
         D(mMTH1) ~ -k_d_mMTH1 * mMTH1 + V_mMTH1 / (1 + θ_Rgt1_active_MTH1 * Rgt1_active) / (1 + θ_Mig1_MTH1 * Mig1) / (1 + θ_Mig2_MTH1 * Mig2),
         D(mRGT1) ~ controller_Rgt1 * (-k_d_mRGT1 * mRGT1 + V_mRGT1),
-        D(mHXT1) ~ -k_d_mHXT1 * mHXT1 + V_mHXT1 * (T_mHXT1 + ((1 - T_mHXT1) * θ_activation * Rgt1) / (1 + θ_activation * Rgt1)) / (1 + θ_Rgt1_active_HXT1 * Rgt1_active), # Vi har tagit bort glucose signals effekt. Läs på om basalreguleringen
+        D(mHXT1) ~ -k_d_mHXT1 * mHXT1 + V_mHXT1 * (T_mHXT1 + ((1 - T_mHXT1) * θ_activation * Rgt1) / (1 + θ_activation * Rgt1)) / (1 + θ_Rgt1_active_HXT1 * Rgt1_active),
         D(mHXT2) ~ -k_d_mHXT2 * mHXT2 + V_mHXT2 / (1 + θ_Rgt1_active_HXT2 * Rgt1_active) / (1 + θ_Mig1_HXT2 * Mig1) / (1 + θ_Mig2_HXT2 * Mig2),
         D(mHXT3) ~ -k_d_mHXT3 * mHXT3 + V_mHXT3 / (1 + θ_Rgt1_active_HXT3 * Rgt1_active) / (1 + θ_Mig1_HXT3 * Mig1) / (1 + θ_Mig2_HXT3 * Mig2),
         D(mHXT4) ~ -k_d_mHXT4 * mHXT4 + V_mHXT4 / (1 + θ_Rgt1_active_HXT4 * Rgt1_active) / (1 + θ_Mig1_HXT4 * Mig1) / (1 + θ_Mig2_HXT4 * Mig2), D(mMIG1) ~ -k_d_mMIG1 * mMIG1 + V_mMIG1 / (1 + θ_Mig1_MIG1 * Mig1) / (1 + θ_Mig2_MIG1 * Mig2),
         D(mMIG2) ~ controller_Mig2 * (-k_d_mMIG2 * mMIG2 + V_mMIG2 / (1 + θ_Rgt1_active_MIG2 * Rgt1_active) / (1 + θ_Mig1_MIG2 * Mig1) / (1 + θ_Mig2_MIG2 * Mig2)),
         D(mSNF1) ~ -k_d_mSNF1 * mSNF1 + V_mSNF1]
 
-    @named system = ODESystem(equation_system) #Definierar av som är systemet från diffrentialekvationerna
-    system = structural_simplify(system) #Skriver om systemet så det blir lösbart
-
+    @named system = ODESystem(equation_system)
+    system = structural_simplify(system)
 
     # Intialvärden som kommer skrivas över
     c0 = zeros(24)
@@ -447,8 +426,8 @@ function model_initialize_big()
     CSV.write("p_est_results/C_order.csv", DataFrame(index=collect(1:24), C=states(system)))
     CSV.write("p_est_results/param_order.csv", DataFrame(index=collect(1:16), C=parameters(system)))
 
-    tspan = (0.0, 10) #Tiden vi kör modellen under
-    problem_object = ODEProblem(system, u0, tspan, p)  #Definierar vad som ska beräknas
+    tspan = (0.0, 10)
+    problem_object = ODEProblem(system, u0, tspan, p)
     return problem_object, system
 end
 
@@ -542,7 +521,7 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
                     θ[index_controller_Mig2] = zero_typefix
                 end
 
-                global c_eq = ss_conc_calc(problem_object, θ, zeros(24))  #Förbättra initialgissningen?
+                global c_eq = ss_conc_calc(problem_object, θ, zeros(24))
                 if c_eq == Inf
                     return Inf
                 end
@@ -555,10 +534,9 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
             if i == 1
                 c_eq_store = c_eq
             end
-            #println(c_eq)
 
             θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
-            sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
+            sol = model_solver(problem_object, θ, c_eq, 120) #All experiments have end time 120
             if sol.retcode ≠ :Success
                 if sol.retcode ≠ :DtLessThanMin
                     @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
@@ -577,15 +555,18 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
                     if i == 3 || i == 4
                         error += sum((c_t[index_first_Hxt-1+4] - experiment.c[index_time_data, 1]) .^ 2)
                     else
-                        #error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)  För utan mutant
-                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, ceil(Int, index_hxt / 2)]) .^ 2) #Håll koll på så index (+5 blir rätt) För med mutant
+                        #För utan mutant
+                        #error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, index_hxt]) .^ 2) #Håll koll på så index (+5 blir rätt)
+                        
+                        #För med mutant
+                        error += sum((c_t[index_first_Hxt-1+index_hxt] - experiment.c[index_time_data, ceil(Int, index_hxt / 2)]) .^ 2) #Håll koll på så index (+5 blir rätt)
                     end
                 end
             end
-        #catch e
-        #    check_extra_error(e)
-        #    return Inf
-        #end
+        catch e 
+            check_extra_error(e)
+            return Inf
+        end
     end
     return error
 end
@@ -636,11 +617,10 @@ function bounds_generator(θ_estimation)
 end
 
 function bounds_generator_big(θ_estimation)
-    #bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
     bounds = [(1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3), (1e-3, 1e3)]
     #bounds = [(1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4), (1e-4, 1e4)]
     newbounds = bounds
-    for i = 1:13 #11
+    for i = 1:13
         newbounds[i] = θ_estimation[i] .* bounds[i]
     end
     return newbounds
@@ -686,7 +666,7 @@ function plot_kinetic(_θ,experimental_data,
             end
         end
         θ[index_glucose] = convert.(θ_type, experiment.glucose_conc)
-        sol = model_solver(problem_object, θ, c_eq, 120) #All have end time 120
+        sol = model_solver(problem_object, θ, c_eq, 120) #All experiments have end time 120
         if sol.retcode ≠ :Success
             if sol.retcode ≠ :DtLessThanMin
                 @warn "Failed solving ODE, reason: $(sol.retcode)" maxlog = 10
@@ -715,7 +695,7 @@ function plot_kinetic(_θ,experimental_data,
 end
 
 # Avrages + Mutant + Big modell (-3, 3)*short_optim bounds
-long_optim = [0.7969990063233143, 68.93424287588466, 6997.780815301634, 0.01593630757371225, 17.286346860335527, 0.008671320875673462, 0.00012446646232616555, 304.4640461729089, 111.99828602219864, 0.00030830983134835766, 235.26237907052467, 0.0001357129836595192, 23973.609058384074] #16220.24295944499
+long_optim = [0.7969990063233143, 68.93424287588466, 6997.780815301634, 0.01593630757371225, 17.286346860335527, 0.008671320875673462, 0.00012446646232616555, 304.4640461729089, 111.99828602219864, 0.00030830983134835766, 235.26237907052467, 0.0001357129836595192, 23973.609058384074]
 
 
 # 11 parameter modell
