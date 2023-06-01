@@ -563,10 +563,10 @@ function cost_function(problem_object, logθ, experimental_data::AbstractVector,
                     end
                 end
             end
-        catch e 
-            check_extra_error(e)
-            return Inf
-        end
+        #catch e 
+        #    check_extra_error(e)
+        #    return Inf
+        #end
     end
     return error
 end
