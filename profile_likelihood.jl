@@ -209,6 +209,7 @@ function run_profile_likelihood(params, log_bounds, n_samples_pl, num_points, th
     end
 end
 
+"Make contour plot for 2 variables, only possible for a model with two unknown paramters"
 function contourplot_2p()
     x = collect(range(0.1, 6, length=100))
     y = collect(range(0.1, 6, length=100))
